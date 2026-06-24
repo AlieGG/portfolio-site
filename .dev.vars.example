@@ -9,3 +9,8 @@ CF_IMAGES_TOKEN="your-images-api-token"
 CF_ACCOUNT_ID="your-account-id"
 CF_IMAGES_ACCOUNT_HASH="your-images-account-hash"
 ADMIN_EMAIL="alie33129@gmail.com"
+
+# Public social URLs surfaced to the front end via PUBLIC_* env vars.
+PUBLIC_IG_URL="https://instagram.com/yourusername"
+PUBLIC_GH_URL="https://github.com/yourusername"
+PUBLIC_LI_URL="https://linkedin.com/in/yourusername"
