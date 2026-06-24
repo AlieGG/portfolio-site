@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "alie-portfolio",
-  "main": "./dist/_worker.js/index.js",
+  // "main": "./dist/_worker.js/index.js",
   "compatibility_date": "2025-06-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
