@@ -1,0 +1,39 @@
+---
+// Hero: status line, the RGB LED dot-matrix panel (canvas), intro + CTAs.
+---
+<section id="top" style="position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:128px 28px 60px;max-width:1280px;margin:0 auto;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.2em;color:var(--muted,#7c7e8a);margin-bottom:24px;">
+    <span style="display:flex;align-items:center;gap:9px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--red,#ff2a45);color:var(--red,#ff2a45);animation:ledPulse 1.3s infinite;"></span>
+      AVAILABLE FOR WORK — 2026
+    </span>
+    <span>ALIE GONZALEZ—GUYON</span>
+  </div>
+
+  <!-- RGB LED dot-matrix panel -->
+  <div style="position:relative;border:1px solid var(--line,#23242e);background:linear-gradient(180deg,#0a0b0f,#050507);border-radius:8px;padding:10px;box-shadow:inset 0 0 70px rgba(0,0,0,.8), 0 30px 80px -40px rgba(0,0,0,.9);">
+    <span style="position:absolute;top:9px;left:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;"></span>
+    <span style="position:absolute;top:9px;right:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;"></span>
+    <span style="position:absolute;bottom:9px;left:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;"></span>
+    <span style="position:absolute;bottom:9px;right:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;"></span>
+    <div style="position:relative;border-radius:5px;overflow:hidden;background:#020203;">
+      <!-- Real heading for SEO / screen readers / LCP; the canvas paints the
+           same words as an LED dot-matrix and is decorative. -->
+      <h1 class="sr-only">Alie Gonzalez-Guyon — Creative Technologist</h1>
+      <canvas data-hero-canvas role="img" aria-hidden="true" style="display:block;width:100%;height:clamp(190px,36vh,340px);"></canvas>
+      <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 50% 0%,rgba(255,255,255,.05),transparent 60%);"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:28px;margin-top:30px;">
+    <p style="max-width:560px;margin:0;font-size:clamp(16px,1.6vw,20px);line-height:1.55;color:var(--ink,#f3f4f8);">
+      I design and build interactive systems where hardware, code and light meet. Founder of <span style="color:var(--red,#ff2a45);">Always&nbsp;in&nbsp;Flux&nbsp;Industries</span> &amp; Co-Founder of <span style="color:var(--red,#ff2a45);">hello_miami</span>.
+    </p>
+    <div data-cta style="display:flex;gap:12px;">
+      <a href="#work" data-btn data-hov data-click style="display:flex;align-items:center;gap:9px;border:1px solid var(--red,#ff2a45);color:var(--red,#ff2a45);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;padding:13px 20px;">
+        <span style="width:7px;height:7px;border-radius:50%;background:currentColor;animation:ledPulse 1.2s infinite;"></span>VIEW WORK
+      </a>
+      <a href="#contact" data-btn data-hov data-click style="border:1px solid var(--line,#23242e);color:var(--ink,#f3f4f8);font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;padding:13px 20px;">GET IN TOUCH</a>
+    </div>
+  </div>
+</section>

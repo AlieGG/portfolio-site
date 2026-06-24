@@ -1,0 +1,20 @@
+---
+import type { Project } from '../lib/db';
+import ProjectCard from './ProjectCard.astro';
+
+interface Props {
+  projects: Project[];
+  accountHash: string;
+}
+const { projects, accountHash } = Astro.props;
+const count = String(projects.length).padStart(2, '0');
+---
+<section id="work" style="position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:110px 28px;">
+  <div data-reveal style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:44px;border-bottom:1px solid var(--line,#23242e);padding-bottom:18px;">
+    <h2 style="margin:0;font-size:clamp(30px,5vw,64px);font-weight:700;letter-spacing:-.02em;">Selected Work</h2>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;color:var(--muted,#7c7e8a);">[ {count} PROJECTS ]</span>
+  </div>
+  <div data-cols="work" style="display:grid;grid-template-columns:repeat(2,1fr);gap:22px;">
+    {projects.map((project) => <ProjectCard project={project} accountHash={accountHash} />)}
+  </div>
+</section>

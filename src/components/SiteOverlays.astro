@@ -1,0 +1,27 @@
+---
+// Fixed-position chrome: scanline, static grid, custom cursor, boot overlay.
+// Ported verbatim from the export; refs converted to data-* the engine queries.
+---
+<!-- scanline + grid overlay -->
+<div style="position:fixed;inset:0;pointer-events:none;z-index:60;opacity:var(--scan,0.35);background:repeating-linear-gradient(0deg,rgba(0,0,0,.5) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;animation:scanMove 8s linear infinite;"></div>
+<div style="position:fixed;inset:0;pointer-events:none;z-index:1;opacity:var(--grid,1);background-image:linear-gradient(var(--line,#23242e) 1px,transparent 1px),linear-gradient(90deg,var(--line,#23242e) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(circle at 50% 22%,#000,transparent 78%);-webkit-mask-image:radial-gradient(circle at 50% 22%,#000,transparent 78%);"></div>
+
+<!-- custom cursor (red accent) -->
+<div data-ring style="position:fixed;left:0;top:0;width:30px;height:30px;border:1.5px solid var(--red,#ff2a45);border-radius:50%;transform:translate(-100px,-100px);pointer-events:none;z-index:9998;mix-blend-mode:screen;box-shadow:0 0 14px var(--red,#ff2a45);"></div>
+<div data-cursor style="position:fixed;left:0;top:0;width:6px;height:6px;background:var(--red,#ff2a45);border-radius:50%;transform:translate(-100px,-100px);pointer-events:none;z-index:9999;box-shadow:0 0 10px var(--red,#ff2a45);"></div>
+
+<!-- BOOT OVERLAY -->
+<div data-boot style="position:fixed;inset:0;z-index:9990;background:var(--bg,#070709);display:flex;align-items:center;justify-content:center;transition:opacity .6s ease;">
+  <div style="width:min(580px,86vw);font-family:'JetBrains Mono',monospace;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <span style="width:9px;height:9px;border-radius:50%;background:var(--red,#ff2a45);color:var(--red,#ff2a45);animation:ledPulse 1s infinite;"></span>
+      <span style="font-size:11px;letter-spacing:.28em;color:var(--muted,#7c7e8a);">RGB_OS // POWER-ON SELF TEST</span>
+    </div>
+    <canvas data-strip data-phase="0" style="display:block;width:100%;height:18px;margin-bottom:18px;border-radius:3px;"></canvas>
+    <div data-boot-log style="font-size:13px;line-height:2;color:var(--ink,#f3f4f8);min-height:150px;white-space:pre-wrap;"></div>
+    <div style="margin-top:16px;height:6px;background:var(--ledoff,#15161d);border:1px solid var(--line,#23242e);overflow:hidden;">
+      <div data-boot-bar style="height:100%;width:0%;background:var(--red,#ff2a45);box-shadow:0 0 10px var(--red,#ff2a45);transition:width .25s linear;"></div>
+    </div>
+    <button data-hov data-skip-boot style="margin-top:18px;background:none;border:1px solid var(--line,#23242e);color:var(--muted,#7c7e8a);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;padding:7px 14px;cursor:pointer;">SKIP ↵</button>
+  </div>
+</div>

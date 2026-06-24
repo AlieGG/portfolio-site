@@ -1,0 +1,21 @@
+# build output
+dist/
+.astro/
+
+# deps
+node_modules/
+
+# cloudflare / wrangler
+.wrangler/
+.dev.vars
+
+# scratch: extracted bundle assets + reference template (not part of the app)
+scratch/
+
+# os / editor
+.DS_Store
+*.log
+npm-debug.log*
+.claude/
+.env
+.envrc

@@ -1,0 +1,18 @@
+Content License for alie.dev / portfolio-site
+
+© 2026 Alie Gonzalez-Guyon. All Rights Reserved.
+
+All creative content in this repository — including but not limited to
+images, photographs, portraits, project descriptions, site copy, branding,
+logos, and other written or visual media — is the exclusive property of
+Alie Gonzalez-Guyon and is not licensed for reuse, reproduction, modification,
+distribution, or display without explicit written permission.
+
+This applies to files under:
+  - public/img/
+  - src/components/*.astro (content/copy portions)
+  - db/seed.sql (content/copy portions)
+  - README.md and any other documentation containing portfolio content
+
+Third-party assets (e.g., fonts bundled via @fontsource packages) remain under
+their respective licenses.

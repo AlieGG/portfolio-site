@@ -1,0 +1,26 @@
+{
+  "name": "alie-portfolio",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "wrangler dev",
+    "deploy": "astro build && wrangler deploy",
+    "astro": "astro",
+    "db:local": "wrangler d1 execute alie_portfolio --local --file=./db/schema.sql",
+    "db:seed:local": "wrangler d1 execute alie_portfolio --local --file=./db/seed.sql",
+    "db:remote": "wrangler d1 execute alie_portfolio --remote --file=./db/schema.sql",
+    "db:seed:remote": "wrangler d1 execute alie_portfolio --remote --file=./db/seed.sql"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.13",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/space-grotesk": "^5.2.10",
+    "astro": "^5.18.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260624.1"
+  }
+}

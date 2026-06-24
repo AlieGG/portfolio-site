@@ -1,0 +1,56 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// Gated by Cloudflare Access (+ middleware). In dev, middleware grants access.
+const env = Astro.locals.runtime.env;
+const accountHash = env.CF_IMAGES_ACCOUNT_HASH ?? '';
+const adminEmail = Astro.locals.adminEmail ?? '';
+---
+
+<BaseLayout title="Admin — Alie.dev" noindex={true}>
+  <div
+    id="admin"
+    data-account-hash={accountHash}
+    style="--bg:#070709;--panel:#0c0d11;--panel2:#101218;--line:#23242e;--ink:#f3f4f8;--muted:#7c7e8a;--ledoff:#15161d;--red:#ff2a45;min-height:100vh;background:var(--bg);color:var(--ink);font-family:'Space Grotesk',system-ui,sans-serif;"
+  >
+    <!-- toolbar -->
+    <header style="position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:linear-gradient(var(--bg),rgba(7,7,9,.86));backdrop-filter:blur(8px);">
+      <div style="display:flex;align-items:center;gap:11px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;">
+        <span style="display:inline-flex;gap:3px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#ff2a45;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#15e0a0;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#2a9dff;"></span>
+        </span>
+        RGB_OS // ADMIN
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);">
+        <span id="admin-status" aria-live="polite"></span>
+        <span>{adminEmail}</span>
+        <a href="/" target="_blank" rel="noopener" style="color:var(--red);">VIEW SITE ↗</a>
+      </div>
+    </header>
+
+    <main id="main" style="display:grid;grid-template-columns:340px 1fr;gap:0;align-items:start;min-height:calc(100vh - 53px);">
+      <!-- project list -->
+      <aside style="border-right:1px solid var(--line);padding:18px;position:sticky;top:53px;align-self:start;max-height:calc(100vh - 53px);overflow:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h1 style="margin:0;font-size:15px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--muted);">PROJECTS</h1>
+          <button id="new-project" style="background:var(--red);border:none;color:#070709;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;padding:7px 12px;border-radius:5px;cursor:pointer;font-weight:600;">+ NEW</button>
+        </div>
+        <ol id="project-list" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;"></ol>
+      </aside>
+
+      <!-- editor -->
+      <section id="editor" style="padding:26px 28px;max-width:900px;">
+        <div id="editor-empty" style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;padding:60px 0;text-align:center;">
+          Select a project, or create a new one.
+        </div>
+        <form id="editor-form" hidden></form>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    import '../../scripts/admin';
+  </script>
+</BaseLayout>
