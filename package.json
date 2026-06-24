@@ -22,5 +22,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260624.1"
+  },
+  "engines": {
+    "node": ">=22.15.0",
+    "npm": ">=10.9.0"
   }
 }
