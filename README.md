@@ -82,6 +82,11 @@ Then in the dashboard: Workers & Pages → `alie-portfolio` → **Settings → D
 → add custom domain `alie.dev` (and `www.alie.dev`). DNS is already on Cloudflare, so this
 just creates the route — do this last; it's the only outward-facing switch.
 
+## Deploy to production
+
+See [DEPLOY.md](DEPLOY.md) for the full one-time Cloudflare setup and
+deployment steps.
+
 ## After deploy
 
 - Visit `/admin`, log in via Access, and upload real images for each project

@@ -28,6 +28,10 @@
     "CF_ACCOUNT_ID": "",
     // Email allowed to use /admin (defense-in-depth check on top of Access).
     "ADMIN_EMAIL": "alie33129@gmail.com",
+    // Public social URLs used by src/components/Contact.astro.
+    "PUBLIC_IG_URL": "",
+    "PUBLIC_GH_URL": "",
+    "PUBLIC_LI_URL": "",
     // Cloudflare Access — filled in after creating the Access application (Phase 5).
     "ACCESS_TEAM_DOMAIN": "",
     "ACCESS_AUD": ""
