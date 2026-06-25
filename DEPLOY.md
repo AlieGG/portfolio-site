@@ -77,3 +77,12 @@ Cloudflare, so this creates the route immediately.
   `SESSION`; you do not need to create it manually.
 - New/edited projects appear within ~60s due to homepage edge caching.
 - Project images must be uploaded via `/admin` after deploy.
+## 6. Optional: automatic deploy on every push to `main`
+
+The repo includes `.github/workflows/deploy.yml`.
+1. In GitHub, go to **Settings → Secrets and variables → Actions**.
+2. Add a **Repository secret** named `CLOUDFLARE_API_TOKEN` with a token that has:
+   - *Account > Cloudflare Workers:Edit*
+   - *Account > Account:Read* (for wrangler to resolve account)
+3. Add a **Repository variable** named `CLOUDFLARE_ACCOUNT_ID` with your Cloudflare account id.
+4. On the next push to `main`, GitHub Actions will run `npm run deploy` automatically.

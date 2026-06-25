@@ -131,3 +131,7 @@ scratch/                   extracted source assets (gitignored, not deployed)
   for reuse without explicit written permission.
 - **Third-party fonts** — JetBrains Mono and Space Grotesk are distributed under
   the SIL Open Font License 1.1.
+## CI/CD
+
+- `.github/workflows/ci.yml` runs the build on every push and PR.
+- `.github/workflows/deploy.yml` deploys to Cloudflare automatically on every push to `main` once you add `CLOUDFLARE_API_TOKEN` (secret) and `CLOUDFLARE_ACCOUNT_ID` (variable) in the GitHub repo settings.
