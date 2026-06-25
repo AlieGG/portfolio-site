@@ -1,49 +1,46 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "alie-portfolio",
-	// "main": "./dist/_worker.js/index.js",
-	"compatibility_date": "2025-06-01",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"assets": {
-		"directory": "./dist",
-		"binding": "ASSETS"
-	},
-	"observability": {
-		"enabled": true
-	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "alie_portfolio",
-			// Filled in after `wrangler d1 create alie_portfolio`. A placeholder is
-			// fine for local `astro dev` (Miniflare uses a local SQLite file).
-			"database_id": "2383504b-6493-4c3e-a0d5-48efd47ce000"
-		},
-		{
-			"binding": "alie_portfolio",
-			"database_name": "alie_portfolio",
-			"database_id": "2383504b-6493-4c3e-a0d5-48efd47ce000",
-			"remote": true
-		}
-	],
-	"vars": {
-		// Public, non-secret. The Cloudflare Images delivery-URL account hash:
-		//   https://imagedelivery.net/<ACCOUNT_HASH>/<image_id>/<variant>
-		"CF_IMAGES_ACCOUNT_HASH": "",
-		// Cloudflare account id (used for the Images upload API endpoint).
-		"CF_ACCOUNT_ID": "",
-		// Email allowed to use /admin (defense-in-depth check on top of Access).
-		"ADMIN_EMAIL": "alie33129@gmail.com",
-		// Public social URLs used by src/components/Contact.astro.
-		"PUBLIC_IG_URL": "",
-		"PUBLIC_GH_URL": "",
-		"PUBLIC_LI_URL": "",
-		// Cloudflare Access — filled in after creating the Access application (Phase 5).
-		"ACCESS_TEAM_DOMAIN": "",
-		"ACCESS_AUD": ""
-	}
-	// Secret (NOT here): CF_IMAGES_TOKEN — set via `wrangler secret put CF_IMAGES_TOKEN`
-	// and in .dev.vars for local dev.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "alie-portfolio",
+  // Wrangler account id used for the CLI (same value as CF_ACCOUNT_ID below).
+  // Fill this in so local `npm run deploy` works without setting an env var.
+  // In CI the CLOUDFLARE_ACCOUNT_ID repository variable is also accepted.
+  "account_id": "",
+  // Astro 7 / @astrojs/cloudflare 14 manages the worker entry automatically,
+  // so leave main commented/omitted.
+  // "main": "./dist/_worker.js/index.js",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "alie_portfolio",
+      "database_id": "2383504b-6493-4c3e-a0d5-48efd47ce000"
+    }
+  ],
+  "vars": {
+    // Public, non-secret. The Cloudflare Images delivery-URL account hash:
+    //   https://imagedelivery.net/<ACCOUNT_HASH>/<image_id>/<variant>
+    "CF_IMAGES_ACCOUNT_HASH": "",
+    // Cloudflare account id (used for the Images upload API endpoint at runtime).
+    // Same value as the top-level account_id above.
+    "CF_ACCOUNT_ID": "",
+    // Email allowed to use /admin (defense-in-depth check on top of Access).
+    "ADMIN_EMAIL": "alie33129@gmail.com",
+    // Public social URLs used by src/components/Contact.astro.
+    "PUBLIC_IG_URL": "",
+    "PUBLIC_GH_URL": "",
+    "PUBLIC_LI_URL": "",
+    // Cloudflare Access — filled in after creating the Access application.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  }
+  // Secret (NOT here): CF_IMAGES_TOKEN — set via `wrangler secret put CF_IMAGES_TOKEN`
+  // and in .dev.vars for local dev.
 }
