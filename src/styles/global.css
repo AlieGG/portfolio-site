@@ -1,0 +1,95 @@
+/* ============================================================================
+   Alie.dev — global styles
+   The block below is ported VERBATIM from the original Claude Design export.
+   Several rules use attribute-substring selectors (e.g. [style*="animation:marq"],
+   [style*="ledFlow"], [style*="portraitCross"]) so the matching inline styles in
+   the components MUST be preserved exactly as written.
+   Fonts (Space Grotesk / JetBrains Mono) are loaded via Fontsource in BaseLayout.
+   ========================================================================== */
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:#070709;}
+body{font-family:'Space Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+::selection{background:var(--red,#ff2a45);color:#070709;}
+@keyframes ledPulse{0%,100%{opacity:1;box-shadow:0 0 6px currentColor,0 0 16px currentColor;}50%{opacity:.4;box-shadow:0 0 2px currentColor;}}
+@keyframes rgbCycle{0%{color:#ff2a45;}20%{color:#ffc23c;}40%{color:#15e0a0;}60%{color:#2a9dff;}80%{color:#b95cff;}100%{color:#ff2a45;}}
+@keyframes marq{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+@keyframes scanMove{0%{background-position:0 0;}100%{background-position:0 4px;}}
+@keyframes flick{0%,100%{opacity:1;}92%{opacity:1;}93%{opacity:.45;}94%{opacity:1;}97%{opacity:.72;}98%{opacity:1;}}
+@keyframes magicSweep{0%{background-position:200% 0;}20%{background-position:-100% 0;}100%{background-position:-100% 0;}}
+@keyframes magicFlicker{0%,49%{opacity:1;}50%{opacity:1;}51%{opacity:.4;}52%{opacity:1;}53.5%{opacity:.72;}55%{opacity:1;}56%{opacity:.5;}57%,100%{opacity:1;}}
+@keyframes starTwinkle{0%,78%,100%{opacity:0;transform:scale(0) rotate(0deg);}84%{opacity:1;transform:scale(1.1) rotate(25deg);}90%{opacity:.6;transform:scale(.7) rotate(45deg);}95%{opacity:0;transform:scale(.2) rotate(60deg);}}
+@keyframes igLed{0%{background:#feda75;box-shadow:0 0 8px #feda75;}25%{background:#fa7e1e;box-shadow:0 0 9px #fa7e1e;}50%{background:#d62976;box-shadow:0 0 11px #d62976;}75%{background:#962fbf;box-shadow:0 0 11px #962fbf;}100%{background:#4f5bd5;box-shadow:0 0 8px #4f5bd5;}}
+@keyframes ghLed{0%,100%{background:#c9ccd6;box-shadow:0 0 4px #c9ccd6;}50%{background:#ffffff;box-shadow:0 0 13px #ffffff;}}
+@keyframes liLed{0%,100%{background:#0a66c2;box-shadow:0 0 5px #0a66c2;}50%{background:#3b9cff;box-shadow:0 0 14px #3b9cff;}}
+[data-calm="1"] [data-sled]{animation:none!important;}
+@keyframes ledFlow{to{background-position:12px 0;}}
+[data-calm="1"] [style*="ledFlow"]{animation:none!important;}
+@keyframes portraitCross{0%,10%{opacity:0;}40%,60%{opacity:1;}90%,100%{opacity:0;}}
+@keyframes glitchIn{0%{opacity:0;clip-path:inset(0 0 100% 0);transform:translate(0,0);}8%{opacity:1;clip-path:inset(0 0 62% 0);transform:translate(-6px,0);}16%{opacity:.5;clip-path:inset(38% 0 24% 0);transform:translate(6px,0);}24%{opacity:1;clip-path:inset(8% 0 0 0);transform:translate(-3px,0);}34%{opacity:.55;clip-path:inset(22% 0 40% 0);transform:translate(4px,0);}46%{opacity:1;clip-path:inset(0 0 0 0);transform:translate(-2px,0);}58%{opacity:.8;transform:translate(3px,0);}70%{opacity:1;transform:translate(-1px,0);}100%{opacity:1;clip-path:inset(0 0 0 0);transform:translate(0,0);}}
+[data-calm="1"] [style*="portraitCross"]{animation-duration:22s!important;}
+[data-calm="1"] [style*="ledPulse"]{animation:none!important;opacity:1!important;}
+[data-calm="1"] [style*="flick"]{animation:none!important;}
+[data-calm="1"] [style*="magicSweep"]{animation-duration:22s!important;}
+[data-calm="1"] [style*="starTwinkle"]{animation-duration:13s!important;}
+[data-calm="1"] [style*="animation:marq"]{animation-duration:78s!important;}
+[data-pinned="1"] [style*="animation:marq"]{animation-duration:66s!important;opacity:.8;}
+[data-calm="1"] [style*="scanMove"]{animation:none!important;}
+[data-calm="1"] [data-card]:hover [data-corner]{animation:none!important;}
+[data-card]{transition:border-color .35s ease, transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;}
+[data-card]:hover{border-color:var(--red,#ff2a45) !important;transform:translateY(-5px);box-shadow:0 0 0 1px var(--red,#ff2a45),0 18px 50px -20px var(--red,#ff2a45);}
+[data-card] [data-reveal-panel]{max-height:0;opacity:0;transform:translateY(8px);transition:max-height .45s cubic-bezier(.2,.7,.2,1),opacity .35s ease,transform .35s ease;overflow:hidden;}
+[data-card]:hover [data-reveal-panel]{max-height:160px;opacity:1;transform:translateY(0);}
+[data-card] [data-thumb]{filter:grayscale(1) brightness(.5);transition:filter .45s ease;}
+[data-card]:hover [data-thumb]{filter:grayscale(0) brightness(.92);}
+[data-card] [data-corner]{opacity:.25;transition:opacity .35s ease;}
+[data-card]:hover [data-corner]{opacity:1;animation:ledPulse 1.1s infinite;}
+[data-hov]{transition:color .25s ease,background .25s ease,border-color .25s ease,transform .25s ease;}
+[data-hov]:hover{color:var(--red,#ff2a45) !important;}
+[data-btn]:hover{background:var(--red,#ff2a45) !important;color:#070709 !important;border-color:var(--red,#ff2a45) !important;box-shadow:0 0 22px -2px var(--red,#ff2a45) !important;}
+a{text-decoration:none;color:inherit;}
+@media (max-width: 920px){
+  [data-cols="verticals"]{grid-template-columns:repeat(2,1fr)!important;}
+}
+@media (max-width: 720px){
+  [data-nav]{display:none!important;}
+  [data-cols="work"]{grid-template-columns:1fr!important;}
+  [data-cols="verticals"]{grid-template-columns:1fr!important;}
+  [data-cols="personal"]{grid-template-columns:1fr!important;gap:40px!important;}
+  [style*="1fr 1fr"]{grid-template-columns:1fr!important;gap:36px!important;}
+  [style*="248px 1fr"]{grid-template-columns:1fr!important;gap:8px!important;}
+  [data-cta]{flex-wrap:wrap!important;}
+  [data-foot]{grid-template-columns:1fr!important;justify-items:center;text-align:center;gap:12px!important;}
+  [data-foot] > span{justify-self:center!important;}
+}
+[data-slide]{transition:opacity .55s ease;}
+[data-gnav]{opacity:0;transition:opacity .3s ease;}
+[data-card]:hover [data-gnav]{opacity:1;}
+[data-gnav]:hover{background:var(--red,#ff2a45)!important;color:#070709!important;border-color:var(--red,#ff2a45)!important;box-shadow:0 0 12px -2px var(--red,#ff2a45);}
+
+/* --- Keyboard accessibility: reveal hover-gated controls on focus too, so
+   keyboard users can reach the carousel arrows and the card summary panel. --- */
+[data-card]:focus-within [data-gnav]{opacity:1;}
+[data-card]:focus-within [data-reveal-panel]{max-height:160px;opacity:1;transform:translateY(0);}
+[data-gnav]:focus-visible{background:var(--red,#ff2a45)!important;color:#070709!important;border-color:var(--red,#ff2a45)!important;}
+
+/* --- Visible focus indicator (WCAG 2.4.7). The :hover !important rules only
+   apply on :hover, so they don't override this. --- */
+a:focus-visible,button:focus-visible,[role="button"]:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--red,#ff2a45);outline-offset:2px;border-radius:2px;
+}
+
+/* visually-hidden but available to assistive tech (sr-only h1, section headings) */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* skip-to-content link, visible only when focused */
+.skip-link{position:fixed;top:8px;left:8px;z-index:10000;transform:translateY(-150%);background:var(--red,#ff2a45);color:#070709;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.1em;padding:10px 16px;border-radius:6px;transition:transform .2s ease;}
+.skip-link:focus{transform:translateY(0);}
+
+/* --- Reduced motion: the engine renders a static frame and parks the rAF loop;
+   here we also stop the CSS-driven ticker and scanline. --- */
+@media (prefers-reduced-motion: reduce){
+  *{scroll-behavior:auto !important;}
+  [style*="animation:marq"]{animation:none !important;}
+  [style*="scanMove"]{animation:none !important;}
+}

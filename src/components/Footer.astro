@@ -1,0 +1,11 @@
+---
+// Footer: RGB strip + credits + live clock (data-clock, updated by the engine).
+---
+<footer style="position:relative;z-index:2;border-top:1px solid var(--line,#23242e);">
+  <canvas data-strip data-phase="60" style="display:block;width:100%;height:8px;"></canvas>
+  <div data-foot style="max-width:1280px;margin:0 auto;padding:26px 28px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:14px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:var(--muted,#7c7e8a);">
+    <span style="justify-self:start;">© 2026 ALIE GONZALEZ—GUYON</span>
+    <span style="justify-self:center;display:flex;align-items:center;gap:7px;">MADE WITH <span style="color:var(--red,#ff2a45);">♥</span> &amp; <span><span style="color:var(--red,#ff2a45);animation:rgbCycle 4s linear infinite;">LED</span>s</span></span>
+    <span style="justify-self:end;display:flex;align-items:center;gap:9px;"><span style="width:7px;height:7px;border-radius:50%;background:var(--red,#ff2a45);color:var(--red,#ff2a45);animation:ledPulse 1.5s infinite;"></span><span data-clock>00:00:00</span> — MIAMI, FL</span>
+  </div>
+</footer>

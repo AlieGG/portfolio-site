@@ -1,0 +1,62 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SiteOverlays from '../components/SiteOverlays.astro';
+import Header from '../components/Header.astro';
+import Hero from '../components/Hero.astro';
+import Marquee from '../components/Marquee.astro';
+import Work from '../components/Work.astro';
+import About from '../components/About.astro';
+import Stack from '../components/Stack.astro';
+import Experience from '../components/Experience.astro';
+import Personal from '../components/Personal.astro';
+import Contact from '../components/Contact.astro';
+import Footer from '../components/Footer.astro';
+import { getPublishedProjects } from '../lib/db';
+
+const env = Astro.locals.runtime.env;
+const projects = await getPublishedProjects(env.DB);
+const accountHash = env.CF_IMAGES_ACCOUNT_HASH ?? '';
+
+// Edge-cache the shell briefly so new projects appear within ~a minute without
+// a redeploy, while keeping responses fast. The boot overlay + clock are JS, so
+// caching the HTML is safe.
+Astro.response.headers.set(
+  'Cache-Control',
+  'public, max-age=0, s-maxage=60, stale-while-revalidate=86400'
+);
+---
+
+<BaseLayout>
+  <div
+    data-root
+    data-line1="CREATIVE"
+    data-line2="TECHNOLOGIST"
+    style="position:relative;min-height:100vh;background:var(--bg,#070709);color:var(--ink,#f3f4f8);overflow-x:clip;"
+  >
+    <SiteOverlays />
+    <Header />
+    <main id="main">
+      <Hero />
+      <Marquee />
+      <Work projects={projects} accountHash={accountHash} />
+
+      <!-- divider strip -->
+      <canvas data-strip data-phase="120" style="position:relative;z-index:2;display:block;width:100%;height:10px;"></canvas>
+
+      <About />
+      <Stack />
+
+      <!-- divider strip -->
+      <canvas data-strip data-phase="240" style="position:relative;z-index:2;display:block;width:100%;height:10px;"></canvas>
+
+      <Experience />
+      <Personal />
+      <Contact />
+    </main>
+    <Footer />
+  </div>
+
+  <script>
+    import '../scripts/rgb-os';
+  </script>
+</BaseLayout>

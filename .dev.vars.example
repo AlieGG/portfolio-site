@@ -1,0 +1,11 @@
+# Copy to `.dev.vars` for local development (gitignored). Real values live in
+# Cloudflare as secrets/vars in production.
+
+# Cloudflare Images API token (Account > My Profile > API Tokens, with
+# "Cloudflare Images: Edit" permission). Secret.
+CF_IMAGES_TOKEN="your-images-api-token"
+
+# These mirror wrangler.jsonc [vars] so local dev resolves them too.
+CF_ACCOUNT_ID="your-account-id"
+CF_IMAGES_ACCOUNT_HASH="your-images-account-hash"
+ADMIN_EMAIL="you@example.com"

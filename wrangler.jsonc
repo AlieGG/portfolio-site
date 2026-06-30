@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "alie-portfolio",
+  "main": "./dist/_worker.js/index.js",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "alie.dev", "custom_domain": true },
+    { "pattern": "www.alie.dev", "custom_domain": true }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "alie_portfolio",
+      "database_id": "2383504b-6493-4c3e-a0d5-48efd47ce000"
+    }
+  ],
+  "vars": {
+    // Public, non-secret. The Cloudflare Images delivery-URL account hash:
+    //   https://imagedelivery.net/<ACCOUNT_HASH>/<image_id>/<variant>
+    "CF_IMAGES_ACCOUNT_HASH": "_FJKR_shvd8XCezQ0-PsUw",
+    // Cloudflare account id (used for the Images upload API endpoint).
+    "CF_ACCOUNT_ID": "5057132d8bf358607b75512371711d57",
+    // Email allowed to use /admin (defense-in-depth check on top of Access).
+    // Must match the email in the Cloudflare Access policy.
+    "ADMIN_EMAIL": "flux@alie.dev",
+    // Cloudflare Access — filled in after creating the Access application (Phase 5).
+    "ACCESS_TEAM_DOMAIN": "morning-cake-bdfd.cloudflareaccess.com",
+    "ACCESS_AUD": "bad386488294d4e00acf21ff9bb7b3157f64430dde0e786039e8e5767652aabe"
+  }
+  // Secret (NOT here): CF_IMAGES_TOKEN — set via `wrangler secret put CF_IMAGES_TOKEN`
+  // and in .dev.vars for local dev.
+}

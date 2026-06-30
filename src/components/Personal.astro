@@ -1,0 +1,51 @@
+---
+// Personal: the LED-panel portrait (base image + glitch-in goggles crossfade,
+// driven by the engine when the section nears viewport center) and bio.
+// Portraits are self-hosted, pre-optimized WebP (orig 2.8MB JPGs → ~84KB).
+---
+<section id="personal" data-personal style="position:relative;z-index:2;border-top:1px solid var(--line,#23242e);">
+  <div data-cols="personal" style="max-width:1280px;margin:0 auto;padding:110px 28px;display:grid;grid-template-columns:minmax(0,0.85fr) 1fr;gap:64px;align-items:center;">
+    <div data-reveal style="position:relative;border:1px solid var(--line,#23242e);background:linear-gradient(180deg,#0a0b0f,#050507);border-radius:8px;padding:10px;box-shadow:inset 0 0 70px rgba(0,0,0,.8), 0 30px 80px -40px rgba(0,0,0,.9);max-width:440px;justify-self:center;width:100%;">
+      <span style="position:absolute;top:9px;left:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;z-index:3;"></span>
+      <span style="position:absolute;top:9px;right:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;z-index:3;"></span>
+      <span style="position:absolute;bottom:9px;left:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;z-index:3;"></span>
+      <span style="position:absolute;bottom:9px;right:10px;width:6px;height:6px;border-radius:50%;background:#1c1d25;box-shadow:inset 0 0 0 1px #2c2d38;z-index:3;"></span>
+      <div style="position:relative;border-radius:5px;overflow:hidden;background:#020203;aspect-ratio:1/1;">
+        <img
+          src="/img/portrait-880.jpg"
+          srcset="/img/portrait-440.webp 440w, /img/portrait-880.webp 880w"
+          sizes="(max-width: 720px) calc(100vw - 56px), 440px"
+          width="440" height="440"
+          alt="Alie Gonzalez-Guyon"
+          loading="lazy" decoding="async"
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;"
+        />
+        <img
+          data-portrait
+          src="/img/portrait-goggles-880.jpg"
+          srcset="/img/portrait-goggles-440.webp 440w, /img/portrait-goggles-880.webp 880w"
+          sizes="(max-width: 720px) calc(100vw - 56px), 440px"
+          width="440" height="440"
+          alt="Alie Gonzalez-Guyon wearing self-built LED goggles"
+          loading="lazy" decoding="async"
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;will-change:opacity;"
+        />
+        <div style="position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.30) 0 1px,transparent 1px 3px);mix-blend-mode:multiply;"></div>
+        <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.06),transparent 60%);"></div>
+        <span style="position:absolute;left:12px;bottom:12px;display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.16em;color:#fff;text-shadow:0 1px 4px #000;"><span style="width:7px;height:7px;border-radius:50%;background:var(--red,#ff2a45);color:var(--red,#ff2a45);animation:ledPulse 1.3s infinite;"></span>MIAMI, FL</span>
+      </div>
+    </div>
+    <div data-reveal style="display:flex;flex-direction:column;gap:22px;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.2em;color:var(--red,#ff2a45);">PERSONAL FILE</span>
+      <h2 style="margin:0;font-size:clamp(28px,3.4vw,46px);font-weight:600;line-height:1.12;letter-spacing:-.01em;">Off the clock</h2>
+      <p style="margin:0;font-size:16px;line-height:1.65;color:var(--muted,#9a9aa2);">Making things isn't just my career — it's the thing I can't put down. I'm fully self-taught, always picking up a new tool, starting the next build, and quietly raising the stakes on the last one.</p>
+      <p style="margin:0;font-size:16px;line-height:1.65;color:var(--muted,#9a9aa2);">There's always something half-finished on my bench. When I finally step away from it, I'm lining up a shot at the pool table or out cycling around Miami.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;">
+        <span data-hov style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;border:1px solid var(--line,#23242e);padding:9px 13px;border-radius:4px;color:var(--ink,#f3f4f8);">🎱 POOL</span>
+        <span data-hov style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;border:1px solid var(--line,#23242e);padding:9px 13px;border-radius:4px;color:var(--ink,#f3f4f8);">🚲 CYCLING</span>
+        <span data-hov style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;border:1px solid var(--line,#23242e);padding:9px 13px;border-radius:4px;color:var(--ink,#f3f4f8);">🔧 TINKERING</span>
+        <span data-hov style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;border:1px solid var(--line,#23242e);padding:9px 13px;border-radius:4px;color:var(--ink,#f3f4f8);">💡 SELF-TAUGHT</span>
+      </div>
+    </div>
+  </div>
+</section>

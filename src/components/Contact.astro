@@ -1,0 +1,38 @@
+---
+// Contact: big "LET'S BUILD", email button, social links.
+// The original used a non-standard `style-hover` attribute (applied by the DC
+// runtime). Reimplemented here with real :hover rules in a scoped <style>.
+// NOTE: social hrefs are placeholders — set Alie's real profile URLs.
+---
+<section id="contact" style="position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:120px 28px 70px;text-align:center;">
+  <span data-reveal style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.2em;color:var(--red,#ff2a45);">04 / CONTACT</span>
+  <h2 data-reveal style="margin:22px auto 0;font-size:clamp(40px,9vw,128px);font-weight:700;letter-spacing:-.03em;line-height:.95;animation:flick 6s infinite;">
+    LET’S&nbsp;<span style="color:var(--red,#ff2a45);text-shadow:0 0 34px var(--red,#ff2a45);">BUILD</span>
+  </h2>
+  <a href="mailto:flux@alie.dev" data-btn data-hov data-click style="display:inline-flex;align-items:center;gap:11px;margin-top:40px;border:1px solid var(--red,#ff2a45);color:var(--red,#ff2a45);font-family:'JetBrains Mono',monospace;font-size:14px;letter-spacing:.14em;padding:16px 26px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:currentColor;animation:ledPulse 1.1s infinite;"></span>flux@alie.dev
+  </a>
+  <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:16px;margin-top:42px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;">
+    <a href="https://www.instagram.com/alie.in.flux/" target="_blank" rel="me noopener" data-click class="soc soc-ig" style="display:flex;align-items:center;gap:11px;padding:13px 18px;border:1px solid var(--line,#23242e);border-radius:6px;color:var(--ink,#f3f4f8);transition:border-color .25s ease, box-shadow .25s ease, color .25s ease;">
+      <span data-sled style="width:8px;height:8px;border-radius:50%;background:#d62976;animation:igLed 3.4s linear infinite;"></span>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5.5"></rect><circle cx="12" cy="12" r="4.3"></circle><circle cx="17.4" cy="6.6" r="1.3" fill="currentColor" stroke="none"></circle></svg>
+      <span>INSTAGRAM</span>
+    </a>
+    <a href="https://github.com/AlieGG" target="_blank" rel="me noopener" data-click class="soc soc-gh" style="display:flex;align-items:center;gap:11px;padding:13px 18px;border:1px solid var(--line,#23242e);border-radius:6px;color:var(--ink,#f3f4f8);transition:border-color .25s ease, box-shadow .25s ease, color .25s ease;">
+      <span data-sled style="width:8px;height:8px;border-radius:50%;background:#c9ccd6;animation:ghLed 2.6s ease-in-out infinite;"></span>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2.1c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 4.6 18.3 5 18.3 5c.6 1.6.2 2.9.1 3.2.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.3v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"></path></svg>
+      <span>GITHUB</span>
+    </a>
+    <a href="https://www.linkedin.com/in/agonzalez-cuzan/" target="_blank" rel="me noopener" data-click class="soc soc-li" style="display:flex;align-items:center;gap:11px;padding:13px 18px;border:1px solid var(--line,#23242e);border-radius:6px;color:var(--ink,#f3f4f8);transition:border-color .25s ease, box-shadow .25s ease, color .25s ease;">
+      <span data-sled style="width:8px;height:8px;border-radius:50%;background:#0a66c2;animation:liLed 2.4s ease-in-out infinite;"></span>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM10 9h3.8v1.7h.1c.5-1 1.8-2.1 3.7-2.1 4 0 4.7 2.6 4.7 6V21h-4v-5.3c0-1.3 0-3-1.8-3s-2.1 1.4-2.1 2.9V21h-4z"></path></svg>
+      <span>LINKEDIN</span>
+    </a>
+  </div>
+</section>
+
+<style>
+  .soc-ig:hover { border-color: #d62976 !important; color: #fff !important; box-shadow: 0 0 22px -4px #d62976; }
+  .soc-gh:hover { border-color: #ffffff !important; color: #fff !important; box-shadow: 0 0 22px -4px rgba(255,255,255,.6); }
+  .soc-li:hover { border-color: #0a66c2 !important; color: #fff !important; box-shadow: 0 0 22px -4px #0a66c2; }
+</style>

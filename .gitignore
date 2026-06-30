@@ -1,0 +1,24 @@
+# build output
+dist/
+.astro/
+
+# deps
+node_modules/
+
+# cloudflare / wrangler
+.wrangler/
+.dev.vars
+
+# scratch: extracted bundle assets + reference template (not part of the app)
+scratch/
+
+# local Claude Code tooling
+.claude/
+
+# nested clone of the GitHub repo (a parallel build; not part of this project)
+/portfolio-site/
+
+# os / editor
+.DS_Store
+*.log
+npm-debug.log*

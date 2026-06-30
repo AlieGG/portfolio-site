@@ -1,0 +1,60 @@
+---
+// Generic document shell: fonts, global CSS, SEO. Page chrome lives in pages.
+// Only the weights actually used above + below the fold (400/600/700 Space
+// Grotesk, 400/700 JetBrains Mono). The 500 weights were dead.
+import '@fontsource/space-grotesk/400.css';
+import '@fontsource/space-grotesk/600.css';
+import '@fontsource/space-grotesk/700.css';
+import '@fontsource/jetbrains-mono/400.css';
+import '@fontsource/jetbrains-mono/700.css';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Skip the SEO/OG block (e.g. admin pages). */
+  noindex?: boolean;
+}
+
+const {
+  title = 'Alie Gonzalez-Guyon — Creative Technologist',
+  description = 'Creative technologist building interactive systems where hardware, code and light meet. Custom LED installations, electronic prototyping, and experiential events.',
+  noindex = false,
+} = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, 'https://alie.dev').href;
+const ogImage = 'https://alie.dev/img/portrait-880.jpg';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#070709" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {
+      !noindex && (
+        <>
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content={title} />
+          <meta property="og:description" content={description} />
+          <meta property="og:url" content={canonical} />
+          <meta property="og:image" content={ogImage} />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content={title} />
+          <meta name="twitter:description" content={description} />
+          <meta name="twitter:image" content={ogImage} />
+        </>
+      )
+    }
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to content</a>
+    <slot />
+  </body>
+</html>

@@ -1,0 +1,14 @@
+---
+// Sticky ticker. The inline `animation:marq ...` MUST stay inline so the
+// [style*="animation:marq"] calm/pinned rules in global.css can match it.
+---
+<div data-marquee style="position:sticky;top:var(--mtop,64px);z-index:79;border-top:1px solid var(--line,#23242e);border-bottom:1px solid var(--line,#23242e);background:var(--panel,#0c0d11);overflow:hidden;padding:14px 0;">
+  <div style="display:flex;width:max-content;animation:marq 28s linear infinite;font-family:'JetBrains Mono',monospace;font-size:15px;letter-spacing:.22em;color:var(--ink,#f3f4f8);transition:opacity .4s ease;">
+    <span style="display:flex;gap:34px;padding-right:34px;align-items:center;">
+      <span>CUSTOM&nbsp;LED&nbsp;INSTALLATIONS</span><span style="color:#15e0a0;">◆</span><span>ELECTRONIC&nbsp;PROTOTYPING</span><span style="color:#2a9dff;">◆</span><span>DIGITAL&nbsp;FABRICATION</span><span style="color:#b95cff;">◆</span><span>PROJECTION&nbsp;MAPPING</span><span style="color:var(--red,#ff2a45);">◆</span><span>EXPERIENTIAL&nbsp;EVENTS</span><span style="color:#ffc23c;">◆</span><span>CREATIVE&nbsp;TECHNOLOGY</span><span style="color:#ff7a1a;">◆</span>
+    </span>
+    <span aria-hidden="true" style="display:flex;gap:34px;padding-right:34px;align-items:center;">
+      <span>CUSTOM&nbsp;LED&nbsp;INSTALLATIONS</span><span style="color:#15e0a0;">◆</span><span>ELECTRONIC&nbsp;PROTOTYPING</span><span style="color:#2a9dff;">◆</span><span>DIGITAL&nbsp;FABRICATION</span><span style="color:#b95cff;">◆</span><span>PROJECTION&nbsp;MAPPING</span><span style="color:var(--red,#ff2a45);">◆</span><span>EXPERIENTIAL&nbsp;EVENTS</span><span style="color:#ffc23c;">◆</span><span>CREATIVE&nbsp;TECHNOLOGY</span><span style="color:#ff7a1a;">◆</span>
+    </span>
+  </div>
+</div>

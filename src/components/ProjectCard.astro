@@ -1,0 +1,76 @@
+---
+import type { Project } from '../lib/db';
+import { imageUrl, imageSrcset } from '../lib/images';
+
+interface Props {
+  project: Project;
+  accountHash: string;
+}
+const { project, accountHash } = Astro.props;
+const imgs = project.images;
+const hasImgs = imgs.length > 0;
+const sizes = '(max-width: 720px) calc(100vw - 56px), (max-width: 1280px) calc(50vw - 33px), 580px';
+---
+<div data-card data-reveal data-click style="position:relative;display:block;border:1px solid var(--line,#23242e);background:var(--panel,#0c0d11);padding:18px;border-radius:6px;">
+  <span data-corner style="position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--red,#ff2a45);color:var(--red,#ff2a45);"></span>
+
+  <div data-gallery style="position:relative;height:230px;border-radius:4px;overflow:hidden;background-image:repeating-linear-gradient(45deg,#16171d 0 10px,#0e0f14 10px 20px);">
+    {hasImgs ? (
+      imgs.map((img, i) => (
+        <div data-slide style={`position:absolute;inset:0;opacity:${i === 0 ? 1 : 0};`}>
+          <img
+            data-thumb
+            src={imageUrl(accountHash, img.cf_image_id, { w: 800 })}
+            srcset={imageSrcset(accountHash, img.cf_image_id, [400, 600, 800])}
+            sizes={sizes}
+            alt={img.subtitle ?? project.title}
+            loading="lazy"
+            decoding="async"
+            style="display:block;width:100%;height:100%;object-fit:cover;"
+          />
+          {img.subtitle && (
+            <div style="position:absolute;left:0;right:0;bottom:0;padding:30px 14px 12px;background:linear-gradient(transparent,rgba(4,4,6,.9));pointer-events:none;">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;color:#fff;">{img.subtitle}</span>
+            </div>
+          )}
+        </div>
+      ))
+    ) : (
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;color:var(--muted,#7c7e8a);">NO&nbsp;IMAGE&nbsp;YET</span>
+      </div>
+    )}
+
+    {imgs.length > 1 && (
+      <>
+        <button type="button" data-gnav data-gprev aria-label="Previous image" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line,#23242e);background:rgba(7,7,9,.72);color:var(--ink,#f3f4f8);font-family:'JetBrains Mono',monospace;font-size:15px;cursor:pointer;border-radius:4px;z-index:4;appearance:none;padding:0;">‹</button>
+        <button type="button" data-gnav data-gnext aria-label="Next image" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line,#23242e);background:rgba(7,7,9,.72);color:var(--ink,#f3f4f8);font-family:'JetBrains Mono',monospace;font-size:15px;cursor:pointer;border-radius:4px;z-index:4;appearance:none;padding:0;">›</button>
+        <div style="position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:4;">
+          {imgs.map((_, i) => (
+            <button type="button" data-dot aria-label={`Go to image ${i + 1}`} style={`width:7px;height:7px;border-radius:50%;cursor:pointer;border:none;padding:0;appearance:none;${i === 0 ? 'background:var(--red,#ff2a45);box-shadow:0 0 7px var(--red,#ff2a45);' : 'background:var(--ledoff,#15161d);'}`}></button>
+          ))}
+        </div>
+      </>
+    )}
+  </div>
+
+  <div style="display:flex;align-items:baseline;justify-content:space-between;margin-top:18px;">
+    <h3 style="margin:0;font-size:24px;font-weight:600;" set:html={project.title.replace(/ /g, '&nbsp;')}></h3>
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted,#7c7e8a);">{project.index_label}</span>
+  </div>
+  {project.kicker && (
+    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;color:var(--red,#ff2a45);">{project.kicker}</span>
+  )}
+  {project.tags.length > 0 && (
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;">
+      {project.tags.map((tag) => (
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--muted,#9a9aa2);border:1px solid var(--line,#23242e);padding:5px 9px;border-radius:3px;" set:html={tag.replace(/ /g, '&nbsp;')}></span>
+      ))}
+    </div>
+  )}
+  {project.summary && (
+    <div data-reveal-panel>
+      <p style="margin:14px 0 0;font-size:14px;line-height:1.55;color:var(--muted,#9a9aa2);">{project.summary}</p>
+    </div>
+  )}
+</div>
