@@ -26,6 +26,7 @@ const adminEmail = Astro.locals.adminEmail ?? '';
       <div style="display:flex;align-items:center;gap:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);">
         <span id="admin-status" aria-live="polite"></span>
         <span>{adminEmail}</span>
+        <a href="/admin/pipeline" style="color:var(--ink);">PIPELINE ↗</a>
         <a href="/" target="_blank" rel="noopener" style="color:var(--red);">VIEW SITE ↗</a>
       </div>
     </header>

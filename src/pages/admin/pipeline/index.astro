@@ -1,0 +1,81 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+// Gated by Cloudflare Access (+ middleware), same as /admin. In dev, middleware grants access.
+const env = Astro.locals.runtime.env;
+const accountHash = env.CF_IMAGES_ACCOUNT_HASH ?? '';
+const adminEmail = Astro.locals.adminEmail ?? '';
+---
+
+<BaseLayout title="Pipeline — Alie.dev" noindex={true}>
+  <div
+    id="pipeline"
+    data-account-hash={accountHash}
+    style="--bg:#070709;--panel:#0c0d11;--panel2:#101218;--line:#23242e;--ink:#f3f4f8;--muted:#7c7e8a;--ledoff:#15161d;--red:#ff2a45;--green:#15e0a0;--blue:#2a9dff;min-height:100vh;background:var(--bg);color:var(--ink);font-family:'Space Grotesk',system-ui,sans-serif;"
+  >
+    <!-- toolbar -->
+    <header style="position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 22px;border-bottom:1px solid var(--line);background:linear-gradient(var(--bg),rgba(7,7,9,.86));backdrop-filter:blur(8px);">
+      <div style="display:flex;align-items:center;gap:11px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;">
+        <span style="display:inline-flex;gap:3px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#ff2a45;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#15e0a0;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#2a9dff;"></span>
+        </span>
+        RGB_OS // PIPELINE
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);">
+        <span id="admin-status" aria-live="polite"></span>
+        <span>{adminEmail}</span>
+        <a href="/admin" style="color:var(--ink);">PROJECTS ↗</a>
+        <a href="/" target="_blank" rel="noopener" style="color:var(--red);">VIEW SITE ↗</a>
+      </div>
+    </header>
+
+    <main style="max-width:1100px;margin:0 auto;padding:26px 28px;display:flex;flex-direction:column;gap:28px;">
+      <!-- Stage 1: Groups -->
+      <section data-stage="groups">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+          <h2 style="margin:0;font-size:16px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--muted);">01 / GROUPS</h2>
+          <select id="groups-filter" style="background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:12px;padding:6px 10px;border-radius:6px;">
+            <option value="proposed">Proposed</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="published">Published</option>
+            <option value="rejected">Rejected</option>
+            <option value="">All</option>
+          </select>
+        </div>
+        <div id="groups-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+      </section>
+
+      <!-- Stage 2: Cull -->
+      <section data-stage="cull" style="border-top:1px solid var(--line);padding-top:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+          <h2 style="margin:0;font-size:16px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--muted);">02 / CULL + CAPTION</h2>
+          <select id="cull-group" style="background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:12px;padding:6px 10px;border-radius:6px;min-width:220px;"></select>
+        </div>
+        <div id="cull-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;"></div>
+        <div id="cull-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;"></div>
+      </section>
+
+      <!-- Stage 3: Review -->
+      <section data-stage="review" style="border-top:1px solid var(--line);padding-top:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;">
+          <h2 style="margin:0;font-size:16px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--muted);">03 / REVIEW + INTERVIEW</h2>
+          <select id="review-group" style="background:var(--panel2);border:1px solid var(--line);color:var(--ink);font-family:inherit;font-size:12px;padding:6px 10px;border-radius:6px;min-width:220px;"></select>
+        </div>
+        <div id="review-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:18px;"></div>
+        <div id="review-interview" style="display:flex;flex-direction:column;gap:12px;"></div>
+      </section>
+
+      <!-- Stage 4: Publish -->
+      <section data-stage="publish" style="border-top:1px solid var(--line);padding-top:22px;">
+        <h2 style="margin:0 0 14px;font-size:16px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;color:var(--muted);">04 / PUBLISH</h2>
+        <div id="publish-panel" style="display:flex;flex-direction:column;gap:14px;"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    import '../../../scripts/admin-pipeline';
+  </script>
+</BaseLayout>

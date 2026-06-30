@@ -43,6 +43,32 @@ export async function getDirectUploadUrl(env: Env): Promise<DirectUpload> {
   return json.result;
 }
 
+// Server-side upload of raw bytes straight to Cloudflare Images, returning the
+// new image id. Used by the pipeline publish step (the existing direct-upload
+// flow is for browsers). Mirrors getDirectUploadUrl's auth + error handling.
+export async function uploadImageFromBytes(
+  env: Env,
+  bytes: ArrayBuffer,
+  contentType = 'image/jpeg'
+): Promise<string> {
+  const fd = new FormData();
+  fd.set('file', new Blob([bytes], { type: contentType }), 'image');
+  const res = await fetch(`${API}/accounts/${env.CF_ACCOUNT_ID}/images/v1`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.CF_IMAGES_TOKEN}` },
+    body: fd,
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Images upload HTTP ${res.status}: ${body}`);
+  }
+  const json = (await res.json()) as { success: boolean; result?: { id: string }; errors?: unknown };
+  if (!json.success || !json.result?.id) {
+    throw new Error(`Images upload failed: ${JSON.stringify(json.errors)}`);
+  }
+  return json.result.id;
+}
+
 export async function deleteCfImage(env: Env, imageId: string): Promise<void> {
   const res = await fetch(`${API}/accounts/${env.CF_ACCOUNT_ID}/images/v1/${imageId}`, {
     method: 'DELETE',

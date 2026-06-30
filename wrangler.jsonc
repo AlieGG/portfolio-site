@@ -23,6 +23,33 @@
       "database_id": "2383504b-6493-4c3e-a0d5-48efd47ce000"
     }
   ],
+  // Raw photo archive for the image pipeline (cheap, no egress). Curated/served
+  // images still go to Cloudflare Images; this bucket holds the originals only.
+  "r2_buckets": [
+    {
+      "binding": "RAW_IMAGES",
+      "bucket_name": "portfolio-raw"
+    }
+  ],
+  // Workers AI — vision captioning, embeddings, and text synthesis for the pipeline.
+  "ai": {
+    "binding": "AI"
+  },
+  // Vectorize index over caption embeddings (768-dim, cosine) for cluster refinement.
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "portfolio-captions"
+    }
+  ],
+  // Ephemeral pipeline state: reconcile lock + batch-status cache.
+  // Replace <id> after `wrangler kv namespace create PIPELINE_KV`.
+  "kv_namespaces": [
+    {
+      "binding": "PIPELINE_KV",
+      "id": "<create-via-wrangler-kv-namespace-create>"
+    }
+  ],
   "vars": {
     // Public, non-secret. The Cloudflare Images delivery-URL account hash:
     //   https://imagedelivery.net/<ACCOUNT_HASH>/<image_id>/<variant>
@@ -34,7 +61,10 @@
     "ADMIN_EMAIL": "flux@alie.dev",
     // Cloudflare Access — filled in after creating the Access application (Phase 5).
     "ACCESS_TEAM_DOMAIN": "morning-cake-bdfd.cloudflareaccess.com",
-    "ACCESS_AUD": "bad386488294d4e00acf21ff9bb7b3157f64430dde0e786039e8e5767652aabe"
+    "ACCESS_AUD": "bad386488294d4e00acf21ff9bb7b3157f64430dde0e786039e8e5767652aabe",
+    // AI Gateway id (already-created OpenAI-compatible router). All Workers AI
+    // calls route through this so a model swap is a one-line catalog change.
+    "AI_GATEWAY_ID": ""
   }
   // Secret (NOT here): CF_IMAGES_TOKEN — set via `wrangler secret put CF_IMAGES_TOKEN`
   // and in .dev.vars for local dev.

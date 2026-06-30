@@ -1,7 +1,10 @@
 /* ============================================================================
    Admin dashboard logic. Talks to /api/admin/* (gated by Cloudflare Access).
    Vanilla TS — no framework — to keep the bundle small.
+   Shared helpers (el/api/setStatus/debounce/makeSortable) live in admin-shared.ts.
    ========================================================================== */
+
+import { el, api, setStatus, debounce, makeSortable } from './admin-shared';
 
 interface Img {
   id: number;
@@ -27,89 +30,15 @@ const ACCOUNT_HASH = root.dataset.accountHash || '';
 const listEl = document.getElementById('project-list') as HTMLOListElement;
 const emptyEl = document.getElementById('editor-empty') as HTMLElement;
 const formEl = document.getElementById('editor-form') as HTMLFormElement;
-const statusEl = document.getElementById('admin-status') as HTMLElement;
 
 let projects: Project[] = [];
 let currentId: number | null = null;
 let draft: Partial<Project> & { tags: string[] } = { tags: [] };
 
 /* ---------- helpers ---------- */
+// Project images are served from Cloudflare Images (imagedelivery.net).
 function imageUrl(id: string, w = 200): string {
   return `https://imagedelivery.net/${ACCOUNT_HASH}/${id}/w=${w},q=82,fit=cover,f=auto`;
-}
-let statusT = 0;
-function setStatus(msg: string, kind: 'ok' | 'err' | '' = '') {
-  statusEl.textContent = msg;
-  statusEl.style.color = kind === 'err' ? '#ff5a6e' : kind === 'ok' ? '#15e0a0' : 'var(--muted)';
-  clearTimeout(statusT);
-  if (msg) statusT = window.setTimeout(() => (statusEl.textContent = ''), 3500);
-}
-async function api<T = any>(method: string, path: string, body?: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method,
-    headers: body ? { 'content-type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const txt = await res.text().catch(() => '');
-    throw new Error(`${res.status} ${txt}`);
-  }
-  return res.status === 204 ? (undefined as T) : await res.json();
-}
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  props: Partial<HTMLElementTagNameMap[K]> & { style?: string } = {},
-  ...children: (Node | string)[]
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) {
-    if (k === 'style') node.setAttribute('style', v as string);
-    else if (k in node) (node as any)[k] = v;
-    else node.setAttribute(k, v as string);
-  }
-  for (const c of children) node.append(c);
-  return node;
-}
-function debounce<T extends (...a: any[]) => void>(fn: T, ms: number): T {
-  let t = 0;
-  return ((...a: any[]) => {
-    clearTimeout(t);
-    t = window.setTimeout(() => fn(...a), ms);
-  }) as T;
-}
-
-/* ---------- native drag-reorder helper ---------- */
-function makeSortable(container: HTMLElement, onReorder: (ids: number[]) => void) {
-  let dragEl: HTMLElement | null = null;
-  container.addEventListener('dragstart', (e) => {
-    const t = (e.target as HTMLElement).closest('[data-id]') as HTMLElement;
-    if (!t) return;
-    dragEl = t;
-    t.style.opacity = '0.4';
-    e.dataTransfer!.effectAllowed = 'move';
-  });
-  container.addEventListener('dragend', () => {
-    if (dragEl) dragEl.style.opacity = '';
-    dragEl = null;
-    onReorder([...container.children].map((c) => Number((c as HTMLElement).dataset.id)));
-  });
-  container.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    const after = getDragAfter(container, (e as DragEvent).clientY);
-    if (!dragEl) return;
-    if (after == null) container.appendChild(dragEl);
-    else container.insertBefore(dragEl, after);
-  });
-}
-function getDragAfter(container: HTMLElement, y: number): HTMLElement | null {
-  const els = [...container.querySelectorAll<HTMLElement>('[data-id]:not([style*="opacity: 0.4"])')];
-  let closest: { offset: number; el: HTMLElement | null } = { offset: -Infinity, el: null };
-  for (const child of els) {
-    const box = child.getBoundingClientRect();
-    const offset = y - box.top - box.height / 2;
-    if (offset < 0 && offset > closest.offset) closest = { offset, el: child };
-  }
-  return closest.el;
 }
 
 /* ---------- project list ---------- */
