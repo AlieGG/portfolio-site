@@ -1,0 +1,25 @@
+Content License for alie.dev / portfolio-site
+
+© 2026 Alie Gonzalez-Guyon. All Rights Reserved.
+
+All creative content in this repository — including but not limited to
+images, photographs, portraits, project descriptions, site copy, branding,
+logos, and other written or visual media — is the exclusive property of
+Alie Gonzalez-Guyon and is NOT licensed for reuse, reproduction, modification,
+distribution, or display without explicit written permission.
+
+This is separate from, and takes precedence over, the MIT License in LICENSE,
+which applies to the source code only. Where a file mixes code and content
+(e.g. an Astro component containing both markup and copy), the MIT License
+covers the code and structure while this license governs the creative content.
+
+This content license applies to (non-exhaustively):
+  - public/img/                     (portraits and any uploaded imagery)
+  - src/components/*.astro          (the written copy / content portions)
+  - db/seed.sql                     (project titles, descriptions, copy)
+  - README.md, STATUS.md, and other docs containing portfolio content
+
+Third-party assets (e.g. fonts bundled via @fontsource packages) remain under
+their respective licenses (SIL Open Font License 1.1).
+
+To request permission to use any content, contact: flux@alie.dev

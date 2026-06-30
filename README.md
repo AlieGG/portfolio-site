@@ -115,3 +115,16 @@ src/
 db/  schema.sql  seed.sql
 scratch/                   extracted source assets (gitignored, not deployed)
 ```
+
+## License
+
+This project is dual-licensed:
+
+- **Code** — [MIT License](LICENSE). You may use, copy, modify, and distribute
+  the source code, provided the MIT notice is included.
+- **Content** — © 2026 Alie Gonzalez-Guyon, **All Rights Reserved**
+  ([LICENSE-CONTENT](LICENSE-CONTENT)). All images, photographs, portraits,
+  project copy, branding, and other creative content are **not** licensed for
+  reuse without explicit written permission (flux@alie.dev).
+- **Fonts** — JetBrains Mono and Space Grotesk are under the
+  [SIL Open Font License 1.1](https://openfontlicense.org/).
