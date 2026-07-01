@@ -167,17 +167,24 @@ async function extractMeta(absPath: string): Promise<LocalImage> {
 
 /* ------------------------------- D1 REST ------------------------------- */
 
-const ACCOUNT_ID = requireEnv('CF_ACCOUNT_ID');
-const API_TOKEN = requireEnv('CF_API_TOKEN');
-const D1_DB_ID = requireEnv('CF_D1_DB_ID');
+// Credentials are read lazily (only when actually uploading), so `--dry-run`
+// works with no env vars and makes no network calls.
+function d1Config() {
+  return {
+    accountId: requireEnv('CF_ACCOUNT_ID'),
+    apiToken: requireEnv('CF_API_TOKEN'),
+    d1Id: requireEnv('CF_D1_DB_ID'),
+  };
+}
 
 async function d1Query<T = any>(sql: string, params: unknown[] = []): Promise<T[]> {
+  const { accountId, apiToken, d1Id } = d1Config();
   const res = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/d1/database/${D1_DB_ID}/query`,
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${d1Id}/query`,
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
+        Authorization: `Bearer ${apiToken}`,
         'content-type': 'application/json',
       },
       body: JSON.stringify({ sql, params }),
@@ -239,18 +246,26 @@ async function assignGroup(imageIds: number[], groupId: number): Promise<void> {
 /* --------------------------------- R2 --------------------------------- */
 
 const R2_BUCKET = process.env.R2_BUCKET || 'portfolio-raw';
-const s3 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: requireEnv('CF_R2_ACCESS_KEY_ID'),
-    secretAccessKey: requireEnv('CF_R2_SECRET_ACCESS_KEY'),
-  },
-});
+
+// Lazily constructed so `--dry-run` never needs R2 credentials.
+let _s3: S3Client | null = null;
+function getS3(): S3Client {
+  if (!_s3) {
+    _s3 = new S3Client({
+      region: 'auto',
+      endpoint: `https://${requireEnv('CF_ACCOUNT_ID')}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId: requireEnv('CF_R2_ACCESS_KEY_ID'),
+        secretAccessKey: requireEnv('CF_R2_SECRET_ACCESS_KEY'),
+      },
+    });
+  }
+  return _s3;
+}
 
 async function uploadToR2(img: LocalImage): Promise<void> {
   const body = await readFile(img.absPath);
-  await s3.send(
+  await getS3().send(
     new PutObjectCommand({
       Bucket: R2_BUCKET,
       Key: img.r2Key,
@@ -268,43 +283,60 @@ interface UploadedRef {
   dateSource: string;
 }
 
-async function clusterIntoGroups(uploaded: UploadedRef[]): Promise<void> {
-  const dated = uploaded
-    .filter((u) => u.captureTs && u.dateSource !== 'mtime-unknown')
+interface Cluster<T> {
+  tsMin: string;
+  tsMax: string;
+  range: string;
+  members: T[];
+}
+
+// Pure clustering: sort dated items and split on gaps larger than the window.
+// No DB / network — used by both the real run and the dry-run preview.
+function planClusters<T extends { captureTs: string | null }>(
+  items: T[]
+): { clusters: Cluster<T>[]; undated: T[] } {
+  const dated = items
+    .filter((i) => i.captureTs)
     .sort((a, b) => Date.parse(a.captureTs!) - Date.parse(b.captureTs!));
-  const undated = uploaded.filter((u) => !u.captureTs);
+  const undated = items.filter((i) => !i.captureTs);
 
-  let cluster: UploadedRef[] = [];
-  let clusterStart = 0;
-  const flush = async () => {
-    if (!cluster.length) return;
-    const tsMin = cluster[0].captureTs!;
-    const tsMax = cluster[cluster.length - 1].captureTs!;
-    const range = `${tsMin.slice(0, 10)} – ${tsMax.slice(0, 10)}`;
-    const gid = await insertGroupRow(null, range, tsMin, tsMax);
-    await assignGroup(
-      cluster.map((c) => c.id),
-      gid
-    );
-    console.log(`  group ${gid}: ${cluster.length} images (${range})`);
-    cluster = [];
+  const clusters: Cluster<T>[] = [];
+  let cur: T[] = [];
+  let start = 0;
+  const flush = () => {
+    if (!cur.length) return;
+    const tsMin = cur[0].captureTs!;
+    const tsMax = cur[cur.length - 1].captureTs!;
+    clusters.push({ tsMin, tsMax, range: `${tsMin.slice(0, 10)} – ${tsMax.slice(0, 10)}`, members: cur });
+    cur = [];
   };
-
-  for (const u of dated) {
-    const t = Date.parse(u.captureTs!);
-    if (cluster.length === 0) {
-      cluster = [u];
-      clusterStart = t;
-    } else if (t - clusterStart <= CLUSTER_WINDOW_MS) {
-      cluster.push(u);
+  for (const it of dated) {
+    const t = Date.parse(it.captureTs!);
+    if (!cur.length) {
+      cur = [it];
+      start = t;
+    } else if (t - start <= CLUSTER_WINDOW_MS) {
+      cur.push(it);
     } else {
-      await flush();
-      cluster = [u];
-      clusterStart = t;
+      flush();
+      cur = [it];
+      start = t;
     }
   }
-  await flush();
+  flush();
+  return { clusters, undated };
+}
 
+async function clusterIntoGroups(uploaded: UploadedRef[]): Promise<void> {
+  const { clusters, undated } = planClusters(uploaded);
+  for (const c of clusters) {
+    const gid = await insertGroupRow(null, c.range, c.tsMin, c.tsMax);
+    await assignGroup(
+      c.members.map((m) => m.id),
+      gid
+    );
+    console.log(`  group ${gid}: ${c.members.length} images (${c.range})`);
+  }
   if (undated.length) {
     const gid = await insertGroupRow('Unsorted', null, null, null);
     await assignGroup(
@@ -319,9 +351,26 @@ async function clusterIntoGroups(uploaded: UploadedRef[]): Promise<void> {
 
 async function main() {
   const { dir, dryRun } = parseArgs();
-  console.log(`Scanning ${dir}${dryRun ? ' (dry run)' : ''}…`);
+  console.log(`Scanning ${dir}${dryRun ? ' (dry run — no credentials or network used)' : ''}…`);
   const files = await walk(dir);
-  console.log(`Found ${files.length} image files.`);
+  console.log(`Found ${files.length} image files (videos and other files are ignored).`);
+
+  // Dry run: read metadata locally, print what would happen + the grouping preview.
+  // No credentials required and nothing is uploaded or queried.
+  if (dryRun) {
+    const metas: LocalImage[] = [];
+    for (const f of files) metas.push(await extractMeta(f));
+    for (const m of metas) {
+      console.log(`  ${m.r2Key}  [${m.dateSource}: ${m.captureTs}]`);
+    }
+    const { clusters, undated } = planClusters(metas);
+    const total = clusters.length + (undated.length ? 1 : 0);
+    console.log(`\nWould create ${total} proposed group(s):`);
+    clusters.forEach((c, i) => console.log(`  group ${i + 1}: ${c.members.length} images (${c.range})`));
+    if (undated.length) console.log(`  Unsorted: ${undated.length} images (no date)`);
+    console.log(`\nDry run complete — ${files.length} images scanned, nothing uploaded.`);
+    return;
+  }
 
   const uploaded: UploadedRef[] = [];
   let skipped = 0;
@@ -330,10 +379,6 @@ async function main() {
     const img = await extractMeta(f);
     if (await r2KeyExists(img.r2Key)) {
       skipped++;
-      continue;
-    }
-    if (dryRun) {
-      console.log(`  would upload ${img.r2Key} (${img.dateSource} ${img.captureTs})`);
       continue;
     }
     try {
