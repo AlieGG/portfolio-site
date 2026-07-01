@@ -61,9 +61,10 @@
     // Cloudflare Access — filled in after creating the Access application (Phase 5).
     "ACCESS_TEAM_DOMAIN": "morning-cake-bdfd.cloudflareaccess.com",
     "ACCESS_AUD": "bad386488294d4e00acf21ff9bb7b3157f64430dde0e786039e8e5767652aabe",
-    // AI Gateway id (already-created OpenAI-compatible router). All Workers AI
-    // calls route through this so a model swap is a one-line catalog change.
-    "AI_GATEWAY_ID": ""
+    // AI Gateway id. All Workers AI calls route through this gateway for usage
+    // tracking + model-swap-in-one-place. Authenticated Gateway is enabled on it;
+    // binding calls (env.AI.run) are trusted automatically, so no token is needed.
+    "AI_GATEWAY_ID": "ai-coder"
   }
   // Secret (NOT here): CF_IMAGES_TOKEN — set via `wrangler secret put CF_IMAGES_TOKEN`
   // and in .dev.vars for local dev.
