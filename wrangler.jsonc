@@ -43,11 +43,10 @@
     }
   ],
   // Ephemeral pipeline state: reconcile lock + batch-status cache.
-  // Replace <id> after `wrangler kv namespace create PIPELINE_KV`.
   "kv_namespaces": [
     {
       "binding": "PIPELINE_KV",
-      "id": "<create-via-wrangler-kv-namespace-create>"
+      "id": "55e80abca490464a93327b56edf193c3"
     }
   ],
   "vars": {
