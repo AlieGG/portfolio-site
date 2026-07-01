@@ -10,6 +10,13 @@ interface Env {
   ACCESS_TEAM_DOMAIN: string; // e.g. "yourteam.cloudflareaccess.com"
   ACCESS_AUD: string; // Access application audience tag
   CF_IMAGES_TOKEN: string; // secret
+
+  // Image pipeline bindings (see db/pipeline_schema.sql + wrangler.jsonc).
+  RAW_IMAGES: R2Bucket; // raw photo archive
+  AI: Ai; // Workers AI
+  VECTORIZE: VectorizeIndex; // caption embeddings
+  PIPELINE_KV: KVNamespace; // reconcile lock + batch-status cache
+  AI_GATEWAY_ID: string; // AI Gateway id (var)
 }
 
 type Runtime = import('@astrojs/cloudflare').Runtime<Env>;
