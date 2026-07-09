@@ -145,6 +145,36 @@ function renderGroupCard(g: Group): HTMLElement {
     meta
   );
 
+  // Expandable image grid (loaded lazily) so you can verify what's in the group
+  // and split out photos that belong to a different project.
+  const body = el('div', {
+    style: 'display:none;flex-direction:column;gap:10px;border-top:1px solid var(--line);padding-top:10px;',
+  });
+  let loaded = false;
+  const selected = new Set<number>();
+  const count = g.image_count ?? 0;
+
+  const viewBtn = btn(`View images (${count})`, 'var(--panel2)', async () => {
+    if (body.style.display !== 'none') {
+      body.style.display = 'none';
+      viewBtn.textContent = `View images (${count})`;
+      return;
+    }
+    body.style.display = 'flex';
+    viewBtn.textContent = 'Hide images';
+    if (!loaded) {
+      body.replaceChildren(el('p', { style: 'color:var(--muted);font-size:12px;', textContent: 'Loading…' }));
+      const res = await api<{ group: Group; images: RawImage[] }>(
+        'GET',
+        `/api/admin/pipeline/groups/${g.id}`
+      );
+      body.replaceChildren();
+      renderGroupImages(g, res.images, body, selected);
+      loaded = true;
+    }
+  });
+  actions.append(viewBtn);
+
   return el(
     'div',
     {
@@ -153,7 +183,63 @@ function renderGroupCard(g: Group): HTMLElement {
         'border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--panel);display:flex;flex-direction:column;gap:10px;',
     } as any,
     header,
-    actions
+    actions,
+    body
+  );
+}
+
+// Thumbnail grid for one group. Click photos that belong to a different project,
+// then "Split" moves them into a brand-new proposed group.
+function renderGroupImages(g: Group, images: RawImage[], host: HTMLElement, selected: Set<number>) {
+  const splitBtn = btn('Split selected → new group', 'var(--blue)', async () => {
+    const ids = [...selected];
+    if (!ids.length) return setStatus('Click the photos to split out first', 'err');
+    if (ids.length >= images.length) return setStatus('Leave at least one photo in this group', 'err');
+    await api('POST', `/api/admin/pipeline/groups/${g.id}/split`, { imageIds: ids });
+    setStatus(`Split ${ids.length} photo(s) into a new group`, 'ok');
+    loadGroups();
+  });
+  const updateSplit = () => {
+    splitBtn.textContent = selected.size
+      ? `Split ${selected.size} selected → new group`
+      : 'Split selected → new group';
+  };
+
+  const grid = el('div', {
+    style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;',
+  });
+  for (const img of images) {
+    const tile = el(
+      'div',
+      { style: 'position:relative;border:2px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;' } as any,
+      el('img', {
+        src: rawThumb(img.id),
+        loading: 'lazy',
+        title: img.original_filename,
+        style: 'width:100%;aspect-ratio:1/1;object-fit:cover;display:block;',
+      } as any)
+    );
+    const mark = () => {
+      const on = selected.has(img.id);
+      tile.style.borderColor = on ? 'var(--red)' : 'var(--line)';
+      tile.style.boxShadow = on ? 'inset 0 0 0 3px var(--red)' : 'none';
+    };
+    tile.addEventListener('click', () => {
+      selected.has(img.id) ? selected.delete(img.id) : selected.add(img.id);
+      mark();
+      updateSplit();
+    });
+    mark();
+    grid.append(tile);
+  }
+
+  host.append(
+    el('p', {
+      style: "font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);",
+      textContent: 'Tap photos that belong to a DIFFERENT project, then split them out.',
+    }),
+    grid,
+    el('div', { style: 'display:flex;gap:8px;' }, splitBtn)
   );
 }
 
