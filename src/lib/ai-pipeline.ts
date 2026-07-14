@@ -90,25 +90,50 @@ export async function pollVlmBatch(
     return { status: 'failed', error: (e as Error).message };
   }
 
-  const status: string = res?.status ?? 'processing';
-  if (status === 'queued' || status === 'running' || status === 'processing') {
-    return { status: 'processing' };
-  }
+  // Explicit error states first.
+  const status: string | undefined = typeof res?.status === 'string' ? res.status : undefined;
   if (status === 'error' || status === 'failed') {
-    return { status: 'failed', error: res?.error ? JSON.stringify(res.error) : 'batch failed' };
+    const err = res?.errors ?? res?.error ?? 'batch failed';
+    return { status: 'failed', error: typeof err === 'string' ? err : JSON.stringify(err) };
   }
 
-  // Complete. Responses come back in submit order.
-  const responses: any[] = res?.responses ?? res?.results ?? [];
-  const results: VlmParsed[] = [];
-  responses.forEach((r, i) => {
-    const id = imageIds[i];
-    if (id == null) return;
-    const content = extractContent(r);
-    const parsed = safeParseVlm(content);
-    if (parsed) results.push({ id, ...parsed });
-  });
-  return { status: 'complete', results };
+  // Completion is signalled by a results array being PRESENT — do not rely on a
+  // status string, because a completed batch may return the array with no status
+  // field (that mismatch is what left batches stuck "processing" forever).
+  const responses: any[] | undefined =
+    (Array.isArray(res?.responses) && res.responses) ||
+    (Array.isArray(res?.results) && res.results) ||
+    (Array.isArray(res?.result?.responses) && res.result.responses) ||
+    (Array.isArray(res) ? res : undefined) ||
+    undefined;
+
+  if (responses && responses.length) {
+    const results: VlmParsed[] = [];
+    responses.forEach((r, i) => {
+      // Map back to the raw_image id: prefer the item's own index if it's a valid
+      // position, otherwise fall back to array order (submit order is preserved).
+      const idx = typeof r?.id === 'number' && r.id >= 0 && r.id < imageIds.length ? r.id : i;
+      const imageId = imageIds[idx];
+      if (imageId == null) return;
+      const content = extractContent(r);
+      const parsed = safeParseVlm(content);
+      if (parsed) results.push({ id: imageId, ...parsed });
+    });
+    return { status: 'complete', results };
+  }
+
+  // Otherwise still queued/running (or an in-progress shape we don't recognize).
+  return { status: 'processing' };
+}
+
+// Diagnostic: return the untouched poll response so the exact shape can be
+// inspected from an admin route without guessing.
+export async function rawPollBatch(env: Env, cfBatchId: string): Promise<unknown> {
+  try {
+    return await (env.AI as any).run(VISION_MODEL, { request_id: cfBatchId }, opts(env));
+  } catch (e) {
+    return { _pollError: (e as Error).message };
+  }
 }
 
 // Pull the text content out of one batch response item (shape varies by model).
