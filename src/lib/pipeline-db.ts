@@ -287,6 +287,23 @@ export async function markRawImagesPublished(DB: D1Database, ids: number[]): Pro
   }
 }
 
+// Release images from a dead batch: send any still 'vlm_pending' back to 'culled'
+// so they no longer show as stuck and can be re-submitted.
+export async function revertImagesToCulled(DB: D1Database, ids: number[]): Promise<void> {
+  if (!ids.length) return;
+  const CHUNK = 90;
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const slice = ids.slice(i, i + CHUNK);
+    const placeholders = slice.map(() => '?').join(',');
+    await DB.prepare(
+      `UPDATE raw_images SET pipeline_status = 'culled', batch_id = NULL
+       WHERE id IN (${placeholders}) AND pipeline_status = 'vlm_pending'`
+    )
+      .bind(...slice)
+      .run();
+  }
+}
+
 // Reset VLM results for a group's images so it can be re-submitted.
 export async function resetGroupVlm(DB: D1Database, groupId: number): Promise<void> {
   await DB.prepare(

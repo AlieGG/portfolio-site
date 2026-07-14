@@ -17,6 +17,7 @@ import {
   listRawImagesByGroup,
   getGroup,
   updateGroup,
+  revertImagesToCulled,
   type PipelineBatch,
 } from './pipeline-db';
 import {
@@ -83,13 +84,17 @@ export async function reconcilePendingBatches(env: Env): Promise<ReconcileSummar
         await resubmitBatch(env, batch);
         summary.stillProcessing++;
       } else {
+        // Permanently failed: release the images so they aren't stuck showing
+        // "vlm_pending" — send them back to 'culled' to be re-submitted.
         await updateBatchStatus(env.DB, batch.id, 'failed');
+        await revertImagesToCulled(env.DB, batch.image_ids);
         summary.failed++;
       }
       continue;
     }
 
     // complete
+    const done = new Set<number>();
     for (const r of result.results ?? []) {
       await updateRawImageVlm(env.DB, r.id, {
         vlm_caption: r.caption,
@@ -97,7 +102,12 @@ export async function reconcilePendingBatches(env: Env): Promise<ReconcileSummar
         vlm_candidate_tags: r.candidate_tags,
         pipeline_status: 'vlm_done',
       });
+      done.add(r.id);
     }
+    // Any batch image that came back with no usable result shouldn't stay stuck
+    // pending — send it back to 'culled' so it can be re-submitted.
+    const stuck = batch.image_ids.filter((id) => !done.has(id));
+    if (stuck.length) await revertImagesToCulled(env.DB, stuck);
     await updateBatchStatus(env.DB, batch.id, 'complete');
     summary.completed++;
 
