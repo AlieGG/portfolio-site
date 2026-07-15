@@ -10,6 +10,11 @@ export const prerender = false;
 export const POST: APIRoute = async (ctx) => {
   const env = requireAdmin(ctx);
   if (env instanceof Response) return env;
-  const summary = await reconcileWithLock(env);
-  return json(summary);
+  try {
+    const summary = await reconcileWithLock(env);
+    return json(summary);
+  } catch (e) {
+    // Never surface a raw 500 to the UI — return a readable error instead.
+    return json({ error: (e as Error).message }, 200);
+  }
 };
