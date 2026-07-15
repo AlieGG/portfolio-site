@@ -39,6 +39,7 @@ export interface ReconcileSummary {
   completed: number;
   failed: number;
   stillProcessing: number;
+  errors?: number;
   skippedLocked?: boolean;
 }
 
@@ -64,60 +65,90 @@ export async function reconcilePendingBatches(env: Env): Promise<ReconcileSummar
   };
 
   for (const batch of batches) {
-    if (!batch.cf_batch_id) {
-      await updateBatchStatus(env.DB, batch.id, 'failed');
-      summary.failed++;
-      continue;
-    }
-
-    const result = await pollVlmBatch(env, batch.cf_batch_id, batch.image_ids);
-
-    if (result.status === 'processing') {
-      await updateBatchStatus(env.DB, batch.id, 'processing');
-      summary.stillProcessing++;
-      continue;
-    }
-
-    if (result.status === 'failed') {
-      if (batch.retry_count < MAX_RETRIES) {
-        await incrementBatchRetry(env.DB, batch.id, result.error ?? 'unknown');
-        await resubmitBatch(env, batch);
-        summary.stillProcessing++;
-      } else {
-        // Permanently failed: release the images so they aren't stuck showing
-        // "vlm_pending" — send them back to 'culled' to be re-submitted.
-        await updateBatchStatus(env.DB, batch.id, 'failed');
-        await revertImagesToCulled(env.DB, batch.image_ids);
-        summary.failed++;
+    // Never let one bad batch 500 the whole reconcile.
+    try {
+      await reconcileOne(env, batch, summary);
+    } catch (e) {
+      summary.errors = (summary.errors ?? 0) + 1;
+      console.warn(`reconcile: batch ${batch.id} errored: ${(e as Error).message}`);
+      try {
+        await incrementBatchRetry(env.DB, batch.id, `reconcile error: ${(e as Error).message}`);
+      } catch {
+        /* best-effort */
       }
-      continue;
-    }
-
-    // complete
-    const done = new Set<number>();
-    for (const r of result.results ?? []) {
-      await updateRawImageVlm(env.DB, r.id, {
-        vlm_caption: r.caption,
-        vlm_quality_score: r.quality_score,
-        vlm_candidate_tags: r.candidate_tags,
-        pipeline_status: 'vlm_done',
-      });
-      done.add(r.id);
-    }
-    // Any batch image that came back with no usable result shouldn't stay stuck
-    // pending — send it back to 'culled' so it can be re-submitted.
-    const stuck = batch.image_ids.filter((id) => !done.has(id));
-    if (stuck.length) await revertImagesToCulled(env.DB, stuck);
-    await updateBatchStatus(env.DB, batch.id, 'complete');
-    summary.completed++;
-
-    if (batch.group_id != null) {
-      await queueEmbeddingBatch(env, batch.group_id);
-      await draftGroupInterviewQuestions(env, batch.group_id);
     }
   }
 
   return summary;
+}
+
+async function reconcileOne(env: Env, batch: PipelineBatch, summary: ReconcileSummary): Promise<void> {
+  if (!batch.cf_batch_id) {
+    await updateBatchStatus(env.DB, batch.id, 'failed');
+    await revertImagesToCulled(env.DB, batch.image_ids);
+    summary.failed++;
+    return;
+  }
+
+  const result = await pollVlmBatch(env, batch.cf_batch_id, batch.image_ids);
+
+  if (result.status === 'processing') {
+    await updateBatchStatus(env.DB, batch.id, 'processing');
+    summary.stillProcessing++;
+    return;
+  }
+
+  if (result.status === 'failed') {
+    const err = result.error ?? 'unknown';
+    // A "not found in queue" (expired/GC'd) job can never recover by re-polling,
+    // and re-submitting from inside reconcile is fragile — treat it (and exhausted
+    // retries) as terminal: mark failed and release the images back to 'culled'
+    // so they can be re-submitted cleanly from the UI's "Submit to VLM" button.
+    const expired = /not found|5504|no such/i.test(err);
+    if (expired || batch.retry_count >= MAX_RETRIES) {
+      await incrementBatchRetry(env.DB, batch.id, err);
+      await updateBatchStatus(env.DB, batch.id, 'failed');
+      await revertImagesToCulled(env.DB, batch.image_ids);
+      summary.failed++;
+      return;
+    }
+    // Transient failure: bump retry and try a fresh re-submit, but if that throws
+    // don't crash — fail the batch and release its images.
+    await incrementBatchRetry(env.DB, batch.id, err);
+    try {
+      await resubmitBatch(env, batch);
+      summary.stillProcessing++;
+    } catch (e) {
+      console.warn(`reconcile: resubmit of ${batch.id} failed: ${(e as Error).message}`);
+      await updateBatchStatus(env.DB, batch.id, 'failed');
+      await revertImagesToCulled(env.DB, batch.image_ids);
+      summary.failed++;
+    }
+    return;
+  }
+
+  // complete
+  const done = new Set<number>();
+  for (const r of result.results ?? []) {
+    await updateRawImageVlm(env.DB, r.id, {
+      vlm_caption: r.caption,
+      vlm_quality_score: r.quality_score,
+      vlm_candidate_tags: r.candidate_tags,
+      pipeline_status: 'vlm_done',
+    });
+    done.add(r.id);
+  }
+  // Any batch image that came back with no usable result shouldn't stay stuck
+  // pending — send it back to 'culled' so it can be re-submitted.
+  const stuck = batch.image_ids.filter((id) => !done.has(id));
+  if (stuck.length) await revertImagesToCulled(env.DB, stuck);
+  await updateBatchStatus(env.DB, batch.id, 'complete');
+  summary.completed++;
+
+  if (batch.group_id != null) {
+    await queueEmbeddingBatch(env, batch.group_id);
+    await draftGroupInterviewQuestions(env, batch.group_id);
+  }
 }
 
 // Re-submit a failed batch with freshly-read image bytes and a new request id.
