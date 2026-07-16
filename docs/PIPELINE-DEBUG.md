@@ -5,6 +5,28 @@ VLM batch flow end-to-end. If you are a fresh Claude session: work on branch
 `claude/portfolio-system-architecture-ry2hd2`, execute this plan autonomously,
 and only report back when the entire flow is verified working.
 
+## Session bootstrap — do this FIRST, fail fast
+
+1. Check credentials are present:
+   `[ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]`
+   (account id should be `5057132d8bf358607b75512371711d57`).
+2. Check egress:
+   `curl -sS -o /dev/null -w "%{http_code}" https://api.cloudflare.com/client/v4`
+   — any HTTP code from Cloudflare (e.g. 400/404) means reachable; a curl
+   CONNECT/403 proxy error means the environment's network policy still blocks
+   it.
+3. Verify the token:
+   `curl -sS https://api.cloudflare.com/client/v4/user/tokens/verify -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN"`
+   → expect `"status":"active"`.
+4. If ANY of these fail, STOP immediately and tell the user exactly which one
+   failed and how to fix it (env vars → claude.ai/code environment settings →
+   environment variables, names above; network → same settings page → network
+   access, must allow `api.cloudflare.com` and `gateway.ai.cloudflare.com`).
+   Do not attempt workarounds; a new session is needed after settings changes.
+5. If all pass: write the token into `.dev.vars` (gitignored) as
+   `CLOUDFLARE_API_TOKEN=...` and `CF_IMAGES_TOKEN=...` (same token; it has
+   Images Edit), then proceed with the plan below. NEVER commit secrets.
+
 ## Current state (as of 2026-07-16)
 
 - The pipeline (upload → group → cull → VLM batch → review/interview → publish)
