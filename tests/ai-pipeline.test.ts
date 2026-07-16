@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   pollVlmBatch,
+  captionImageSync,
   extractContent,
   safeParseVlm,
   chunkVlmItems,
@@ -153,6 +154,34 @@ describe('pollVlmBatch against captured shapes', () => {
     const env = envWithAiResult({ responses: [] });
     const r = await pollVlmBatch(env, 'req-1', [1]);
     expect(r.status).toBe('processing');
+  });
+});
+
+/* ---------------------------- captionImageSync ---------------------------- */
+
+describe('captionImageSync', () => {
+  it('parses the real synchronous scout response', async () => {
+    let captured: any;
+    const env = {
+      AI: {
+        run: async (_m: string, input: any) => {
+          captured = input;
+          return bindingResult('sync-run-response.scout.json');
+        },
+      },
+      AI_GATEWAY_ID: '',
+    } as unknown as Env;
+    const parsed = await captionImageSync(env, 'data:image/jpeg;base64,AAAA');
+    expect(parsed).not.toBeNull();
+    expect(parsed!.caption).toMatch(/circuit board/i);
+    expect(parsed!.quality_score).toBeCloseTo(0.8);
+    // sends the standard image_url + prompt message shape
+    expect(captured.messages[0].content[0].image_url.url).toContain('base64');
+  });
+
+  it('returns null on an unparseable response instead of throwing', async () => {
+    const env = envWithAiResult({ response: 'no json here at all' });
+    expect(await captionImageSync(env, 'data:x')).toBeNull();
   });
 });
 

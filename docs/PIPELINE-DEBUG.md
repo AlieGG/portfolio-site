@@ -63,12 +63,38 @@ warning without it, by design).
 `npm test` (vitest) pins all captured shapes and the reconcile state machine;
 CI runs it before build.
 
+## Captioning transport: sync-first (2026-07-16, second pass)
+
+The async batch queue has no latency guarantee — tiny jobs sat 10–25 min in
+`queued`. The same image captions in ~3–5 s with a plain `env.AI.run`. So the
+default path is now **synchronous**:
+
+- `submit-batch` no longer calls the queue. It inserts a `vlm_sync` batch row
+  (`cf_batch_id = NULL`), marks the images `vlm_pending`, kicks one reconcile
+  via `waitUntil`, and returns immediately. Pressing it again is safe: it 400s
+  ("no culled images") or 409s ("captioning already in progress").
+- Each reconcile tick captions up to `SYNC_CAPTIONS_PER_TICK` (4) pending
+  images with `captionImageSync`, flipping them `vlm_pending → vlm_done`, and
+  completes the batch when none remain. The admin UI polls every ~2.5 s and
+  repaints the grid, so per-image status updates live (amber pulse → green).
+- Fallback: if sync calls keep failing (capacity), after `MAX_RETRIES` the
+  batch is handed to the async queue (`resubmitBatch` sets `cf_batch_id`), and
+  from then on it polls like any queued batch. The queue path, its parsing, and
+  all the samples in `docs/samples/` are still live for that fallback.
+
+Local-dev gotcha: `astro dev` establishes the AI remote-proxy session at boot;
+after a few idle hours it expires and every AI call fails fast with
+`error code: 1031`. Restart the dev server to refresh it — this is a
+wrangler-remote-bindings artifact, not a production issue (the binding is
+native in prod).
+
 ## Still open / operational notes
 
 - Reconcile only runs when an admin page is open (`waitUntil` on list routes or
-  the button). Batches complete in ~10–25 min wall-clock, so captions appear on
-  the next visit; a cron trigger would remove that dependency but the Astro
-  adapter owns the worker entry (fetch-only).
+  the button). With sync captioning a group now finishes in a handful of ticks
+  (~4 images each), so captions appear within a minute of opening the page
+  rather than after a multi-minute queue; a cron trigger would remove even that
+  dependency but the Astro adapter owns the worker entry (fetch-only).
 - Production group 3 was cleaned up (batch → `failed`, its 16 images →
   `culled`) so it can be re-submitted from the UI after this deploys. No
   captions were fabricated.

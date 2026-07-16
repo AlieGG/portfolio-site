@@ -20,6 +20,7 @@ const db = vi.hoisted(() => ({
 
 const ai = vi.hoisted(() => ({
   pollVlmBatch: vi.fn(),
+  captionImageSync: vi.fn(),
   embedCaption: vi.fn(async () => Array(768).fill(0)),
   draftInterviewQuestions: vi.fn(async () => []),
   submitVlmBatch: vi.fn(),
@@ -34,7 +35,11 @@ vi.mock('../src/lib/pipeline-db', () => db);
 vi.mock('../src/lib/ai-pipeline', () => ai);
 vi.mock('../src/lib/r2-pipeline', () => r2);
 
-import { reconcilePendingBatches, reconcileWithLock } from '../src/lib/batch-reconcile';
+import {
+  reconcilePendingBatches,
+  reconcileWithLock,
+  SYNC_CAPTIONS_PER_TICK,
+} from '../src/lib/batch-reconcile';
 
 function makeBatch(over: Partial<any> = {}) {
   return {
@@ -166,6 +171,102 @@ describe('reconcile state machine', () => {
     expect(s.errors).toBe(1);
     expect(s.stillProcessing).toBe(1);
     expect(db.updateBatchStatus).toHaveBeenCalledWith(env.DB, 'b-good', 'processing');
+  });
+});
+
+describe('sync captioning batches (batch_type vlm_sync)', () => {
+  const syncBatch = (over: Partial<any> = {}) =>
+    makeBatch({ batch_type: 'vlm_sync', cf_batch_id: null, status: 'processing', ...over });
+
+  const pendingImage = (id: number) => ({
+    id,
+    r2_key: `raw/${id}.jpg`,
+    pipeline_status: 'vlm_pending',
+  });
+
+  const parsed = { caption: 'a pcb', quality_score: 0.8, candidate_tags: ['pcb'] };
+
+  it('captions every pending image and completes when the batch is small', async () => {
+    db.listPendingBatches.mockResolvedValue([syncBatch()]);
+    db.getRawImage.mockImplementation(async (_db: unknown, id: number) => pendingImage(id));
+    ai.captionImageSync.mockResolvedValue(parsed);
+    const s = await reconcilePendingBatches(env);
+    expect(s.completed).toBe(1);
+    expect(ai.captionImageSync).toHaveBeenCalledTimes(2);
+    expect(db.updateRawImageVlm).toHaveBeenCalledWith(
+      env.DB,
+      101,
+      expect.objectContaining({ vlm_caption: 'a pcb', pipeline_status: 'vlm_done' })
+    );
+    expect(db.updateBatchStatus).toHaveBeenCalledWith(env.DB, 'b-1', 'complete');
+    expect(ai.pollVlmBatch).not.toHaveBeenCalled(); // no queue involved
+  });
+
+  it('only advances a per-tick slice of a big batch, staying in processing', async () => {
+    const ids = Array.from({ length: SYNC_CAPTIONS_PER_TICK + 3 }, (_, i) => 100 + i);
+    db.listPendingBatches.mockResolvedValue([syncBatch({ image_ids: ids })]);
+    db.getRawImage.mockImplementation(async (_db: unknown, id: number) => pendingImage(id));
+    ai.captionImageSync.mockResolvedValue(parsed);
+    const s = await reconcilePendingBatches(env);
+    expect(s.stillProcessing).toBe(1);
+    expect(ai.captionImageSync).toHaveBeenCalledTimes(SYNC_CAPTIONS_PER_TICK);
+    expect(db.updateBatchStatus).toHaveBeenCalledWith(env.DB, 'b-1', 'processing');
+  });
+
+  it('completes on a later tick once already-captioned images are vlm_done', async () => {
+    db.listPendingBatches.mockResolvedValue([syncBatch()]);
+    db.getRawImage.mockImplementation(async (_db: unknown, id: number) =>
+      id === 101
+        ? { ...pendingImage(id), pipeline_status: 'vlm_done' }
+        : pendingImage(id)
+    );
+    ai.captionImageSync.mockResolvedValue(parsed);
+    const s = await reconcilePendingBatches(env);
+    expect(s.completed).toBe(1);
+    expect(ai.captionImageSync).toHaveBeenCalledTimes(1); // only image 202
+  });
+
+  it('releases an image whose caption is unparseable instead of wedging', async () => {
+    db.listPendingBatches.mockResolvedValue([syncBatch()]);
+    db.getRawImage.mockImplementation(async (_db: unknown, id: number) => pendingImage(id));
+    ai.captionImageSync.mockResolvedValueOnce(null).mockResolvedValueOnce(parsed);
+    const s = await reconcilePendingBatches(env);
+    expect(s.completed).toBe(1);
+    expect(db.revertImagesToCulled).toHaveBeenCalledWith(env.DB, [101]);
+    expect(db.updateRawImageVlm).toHaveBeenCalledTimes(1);
+  });
+
+  it('bumps retries on AI failure and falls back to the async queue when exhausted', async () => {
+    db.listPendingBatches.mockResolvedValue([syncBatch({ retry_count: 2 })]);
+    db.getRawImage.mockImplementation(async (_db: unknown, id: number) => pendingImage(id));
+    ai.captionImageSync.mockRejectedValue(new Error('3040: capacity temporarily exceeded'));
+    ai.submitVlmBatch.mockResolvedValue('cf-queue-1');
+    const s = await reconcilePendingBatches(env);
+    expect(s.stillProcessing).toBe(1);
+    expect(db.incrementBatchRetry).toHaveBeenCalled();
+    expect(ai.submitVlmBatch).toHaveBeenCalled();
+    expect(db.updateBatchStatus).toHaveBeenCalledWith(env.DB, 'b-1', 'submitted', 'cf-queue-1');
+    expect(db.revertImagesToCulled).not.toHaveBeenCalled();
+  });
+
+  it('retries without queue fallback while retries remain', async () => {
+    db.listPendingBatches.mockResolvedValue([syncBatch({ retry_count: 0 })]);
+    db.getRawImage.mockImplementation(async (_db: unknown, id: number) => pendingImage(id));
+    ai.captionImageSync.mockRejectedValue(new Error('capacity'));
+    const s = await reconcilePendingBatches(env);
+    expect(s.stillProcessing).toBe(1);
+    expect(ai.submitVlmBatch).not.toHaveBeenCalled();
+  });
+
+  it('polls like a queue batch after the fallback set cf_batch_id', async () => {
+    db.listPendingBatches.mockResolvedValue([
+      syncBatch({ cf_batch_id: 'cf-queue-1', status: 'submitted' }),
+    ]);
+    ai.pollVlmBatch.mockResolvedValue({ status: 'processing' });
+    const s = await reconcilePendingBatches(env);
+    expect(s.stillProcessing).toBe(1);
+    expect(ai.captionImageSync).not.toHaveBeenCalled();
+    expect(ai.pollVlmBatch).toHaveBeenCalledWith(env, 'cf-queue-1', [101, 202]);
   });
 });
 

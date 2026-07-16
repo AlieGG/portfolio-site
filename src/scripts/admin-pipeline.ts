@@ -44,6 +44,13 @@ let reviewHeroes = new Set<number>();
 const rawThumb = (id: number) => `/api/admin/pipeline/images/${id}/raw`;
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
+// Pulse animation for in-flight status dots (vlm_pending chips).
+document.head.append(
+  el('style', {
+    textContent: '@keyframes pipelinePulse { 0%,100% { opacity:.35 } 50% { opacity:1 } }',
+  })
+);
+
 /* ============================ Stage 1: Groups ============================ */
 
 const groupsFilter = $<HTMLSelectElement>('groups-filter');
@@ -280,11 +287,9 @@ async function loadCull() {
           `/api/admin/pipeline/groups/${groupId}/submit-batch`
         );
         const ids = r.batchIds?.length ? r.batchIds : [r.batchId];
-        setStatus(
-          `Submitted ${r.imageCount} images (${ids.length} batch${ids.length > 1 ? 'es' : ''})`,
-          'ok'
-        );
-        startBatchPoll(ids);
+        setStatus(`Captioning ${r.imageCount} images — 0/${r.imageCount} done`, '', true);
+        await loadCull(); // repaint immediately so images show as queued
+        startBatchPoll(groupId, ids);
       } catch (e) {
         setStatus(`Submit failed: ${(e as Error).message}`, 'err');
       }
@@ -297,6 +302,33 @@ async function loadCull() {
   );
 
   for (const img of cullImages) cullGrid.append(renderCullCard(img));
+
+  // If captioning is already in flight (page reloaded mid-run, or kicked off
+  // from another tab), resume the live poll instead of sitting silent.
+  const pending = cullImages.filter((i) => i.pipeline_status === 'vlm_pending').length;
+  if (pending) {
+    setStatus(`Captioning in progress — ${pending} images pending`, '', true);
+    startBatchPoll(groupId, []);
+  }
+}
+
+// Per-image pipeline status → chip color. Amber = in flight, green = done.
+function imageStatusColor(status: string): string {
+  switch (status) {
+    case 'vlm_pending':
+      return '#ffcc4d';
+    case 'vlm_done':
+    case 'embedded':
+      return '#15e0a0';
+    case 'published':
+      return 'var(--blue)';
+    case 'culled_out':
+      return '#ff8a80';
+    case 'culled':
+      return 'var(--ink)';
+    default:
+      return 'var(--muted)';
+  }
 }
 
 function renderCullCard(img: RawImage): HTMLElement {
@@ -304,7 +336,21 @@ function renderCullCard(img: RawImage): HTMLElement {
   const dim = out ? 'opacity:.4;' : '';
   const res = img.width && img.height ? `${img.width}×${img.height}` : '?';
   const kb = img.file_size_bytes ? `${Math.round(img.file_size_bytes / 1024)}KB` : '?';
-  return el(
+  const busy = img.pipeline_status === 'vlm_pending';
+  const chip = el('span', {
+    style: `display:inline-flex;align-items:center;gap:5px;color:${imageStatusColor(img.pipeline_status)};`,
+    textContent: img.pipeline_status,
+  });
+  if (busy) {
+    // Pulsing dot while the VLM is working on this image.
+    chip.prepend(
+      el('span', {
+        style:
+          'width:6px;height:6px;border-radius:50%;background:#ffcc4d;animation:pipelinePulse 1.2s ease-in-out infinite;',
+      })
+    );
+  }
+  const card = el(
     'div',
     {
       style: `border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel);${dim}`,
@@ -316,18 +362,48 @@ function renderCullCard(img: RawImage): HTMLElement {
     } as any),
     el(
       'div',
-      { style: "padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);" },
-      `${res} · ${kb} · ${img.pipeline_status}`
+      {
+        style:
+          "padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;",
+      },
+      el('span', { textContent: `${res} · ${kb}` }),
+      chip
     )
   );
+  if (img.vlm_caption) card.title = img.vlm_caption;
+  return card;
 }
 
-function startBatchPoll(batchIds: string[]) {
+// Re-fetch and repaint just the image grid (leaves the action buttons alone),
+// returning the fresh images so callers can compute progress.
+async function refreshCullGrid(groupId: number): Promise<RawImage[]> {
+  const res = await api<{ group: Group; images: RawImage[] }>(
+    'GET',
+    `/api/admin/pipeline/groups/${groupId}`
+  );
+  cullImages = res.images;
+  cullGrid.replaceChildren();
+  for (const img of cullImages) cullGrid.append(renderCullCard(img));
+  return cullImages;
+}
+
+function startBatchPoll(groupId: number, batchIds: string[]) {
   clearTimeout(cullPollTimer);
   const tick = async () => {
-    if (document.hidden) return;
+    if (document.hidden) {
+      cullPollTimer = window.setTimeout(tick, 5000);
+      return;
+    }
     try {
+      // Each reconcile tick captions a few more images (sync path), then the
+      // grid repaints so statuses flip culled → vlm_pending → vlm_done live.
       await api('POST', '/api/admin/pipeline/reconcile');
+      const images = Number(cullSel.value) === groupId ? await refreshCullGrid(groupId) : cullImages;
+      const pending = images.filter((i) => i.pipeline_status === 'vlm_pending').length;
+      const done = images.filter((i) =>
+        ['vlm_done', 'embedded', 'published'].includes(i.pipeline_status)
+      ).length;
+
       const statuses: string[] = [];
       for (const id of batchIds) {
         const { batch } = await api<{ batch: { status: string } }>(
@@ -336,20 +412,27 @@ function startBatchPoll(batchIds: string[]) {
         );
         statuses.push(batch.status);
       }
-      setStatus(`Batch${batchIds.length > 1 ? 'es' : ''}: ${statuses.join(', ')}`);
-      if (statuses.every((s) => s === 'complete' || s === 'failed')) {
-        const ok = statuses.every((s) => s === 'complete');
-        setStatus(`Batch${batchIds.length > 1 ? 'es' : ''} ${statuses.join(', ')}`, ok ? 'ok' : 'err');
-        loadCull();
+      // Without known batch ids (poll resumed after a page reload), fall back
+      // to "no images pending" as the terminal signal.
+      const terminal = batchIds.length
+        ? statuses.every((s) => s === 'complete' || s === 'failed')
+        : pending === 0;
+      if (terminal) {
+        const ok = batchIds.length ? statuses.every((s) => s === 'complete') : true;
+        setStatus(
+          ok ? `Captioning complete — ${done} images done` : `Captioning ${statuses.join(', ')}`,
+          ok ? 'ok' : 'err'
+        );
         refreshGroupSelectors();
         return;
       }
+      setStatus(`Captioning — ${done}/${done + pending} done`, '', true);
     } catch {
       /* keep polling */
     }
-    cullPollTimer = window.setTimeout(tick, 15000);
+    cullPollTimer = window.setTimeout(tick, 5000);
   };
-  cullPollTimer = window.setTimeout(tick, 4000);
+  cullPollTimer = window.setTimeout(tick, 2500);
 }
 
 /* ====================== Stage 3: Review + interview ====================== */
@@ -608,13 +691,22 @@ function btn(label: string, bg: string, onClick: () => void | Promise<void>): HT
     style: `background:${bg};border:1px solid ${dark ? 'var(--line)' : bg};color:${dark ? 'var(--ink)' : '#070709'};font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;font-weight:600;padding:8px 14px;border-radius:6px;cursor:pointer;`,
   } as any);
   b.addEventListener('click', async () => {
+    // Visible in-flight state: label swaps to an ellipsis and the button dims,
+    // so a slow request never looks like a dead click.
+    const original = b.textContent;
     b.disabled = true;
+    b.style.opacity = '0.55';
+    b.style.cursor = 'wait';
+    b.textContent = `${original} …`;
     try {
       await onClick();
     } catch (e) {
       setStatus((e as Error).message, 'err');
     } finally {
       b.disabled = false;
+      b.style.opacity = '';
+      b.style.cursor = 'pointer';
+      if (b.textContent === `${original} …`) b.textContent = original;
     }
   });
   return b;
