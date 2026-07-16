@@ -1,0 +1,67 @@
+{
+  "result": {
+    "responses": [
+      {
+        "id": 0,
+        "result": {
+          "response": {
+            "caption": "A printed circuit board (PCB) with a grid pattern and a black rectangle in the center labeled PCB REVA.",
+            "quality_score": 0.8,
+            "candidate_tags": [
+              "pcb",
+              "circuit board",
+              "electronics",
+              "maker",
+              "diy"
+            ],
+            "subject_type": "pcb"
+          },
+          "tool_calls": []
+        },
+        "success": true,
+        "external_reference": null
+      },
+      {
+        "id": 2,
+        "result": {
+          "response": "```\n{\n  \"caption\": \"A blue grid background with a black rectangle in the center labeled 'LED PANEL'. The image appears to be a product or project photo.\",\n  \"quality_score\": 0.8,\n  \"candidate_tags\": [\"led\", \"panel\", \"installation\", \"electronics\", \"craft\"],\n  \"subject_type\": \"installation\"\n}\n```",
+          "tool_calls": []
+        },
+        "success": true,
+        "external_reference": null
+      },
+      {
+        "id": 1,
+        "result": {
+          "response": {
+            "caption": "A green grid board with a black rectangle in the center labeled 'WIRING'. The board has a series of yellow lines forming a grid pattern.",
+            "quality_score": 0.8,
+            "candidate_tags": [
+              "pcb",
+              "wiring",
+              "electronics",
+              "circuit",
+              "board"
+            ],
+            "subject_type": "wiring"
+          },
+          "tool_calls": []
+        },
+        "success": true,
+        "external_reference": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 6249,
+      "completion_tokens": 227,
+      "total_tokens": 6476,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "_note": "captured through the env.AI binding in local dev (rawPoll already envelope-stripped; re-wrapped here to match the other samples)"
+}

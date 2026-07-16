@@ -35,6 +35,11 @@
   "ai": {
     "binding": "AI"
   },
+  // Images binding — downscales photos before VLM batch submission so a group
+  // stays under the async batch API's 10 MB payload cap.
+  "images": {
+    "binding": "IMAGES"
+  },
   // Vectorize index over caption embeddings (768-dim, cosine) for cluster refinement.
   "vectorize": [
     {

@@ -25,14 +25,17 @@ import {
   embedCaption,
   draftInterviewQuestions,
   submitVlmBatch,
+  chunkVlmItems,
   type VlmBatchItem,
 } from './ai-pipeline';
-import { r2ObjectToDataUrl } from './r2-pipeline';
+import { r2ObjectToVlmDataUrl } from './r2-pipeline';
 import { getRawImage } from './pipeline-db';
 
 const MAX_RETRIES = 3;
 const LOCK_KEY = 'reconcile-lock';
-const LOCK_TTL = 30; // seconds
+// Workers KV rejects expirationTtl < 60 with a 400 — a TTL of 30 made every
+// lock put throw, which killed EVERY reconcile before it polled anything.
+const LOCK_TTL = 60; // seconds; KV-enforced minimum
 
 export interface ReconcileSummary {
   polled: number;
@@ -44,14 +47,30 @@ export interface ReconcileSummary {
 }
 
 // KV-locked wrapper so overlapping requests don't double-poll the same batches.
+// The lock is an optimization, not a correctness requirement (double-polling is
+// merely wasteful), so KV failures must never block reconciliation itself.
 export async function reconcileWithLock(env: Env): Promise<ReconcileSummary> {
-  const held = await env.PIPELINE_KV.get(LOCK_KEY);
-  if (held) return { polled: 0, completed: 0, failed: 0, stillProcessing: 0, skippedLocked: true };
-  await env.PIPELINE_KV.put(LOCK_KEY, '1', { expirationTtl: LOCK_TTL });
+  let locked = false;
+  try {
+    const held = await env.PIPELINE_KV.get(LOCK_KEY);
+    if (held) {
+      return { polled: 0, completed: 0, failed: 0, stillProcessing: 0, skippedLocked: true };
+    }
+    await env.PIPELINE_KV.put(LOCK_KEY, '1', { expirationTtl: LOCK_TTL });
+    locked = true;
+  } catch (e) {
+    console.warn(`reconcile lock unavailable, proceeding without: ${(e as Error).message}`);
+  }
   try {
     return await reconcilePendingBatches(env);
   } finally {
-    await env.PIPELINE_KV.delete(LOCK_KEY);
+    if (locked) {
+      try {
+        await env.PIPELINE_KV.delete(LOCK_KEY);
+      } catch {
+        /* TTL expires it */
+      }
+    }
   }
 }
 
@@ -157,12 +176,20 @@ async function resubmitBatch(env: Env, batch: PipelineBatch): Promise<void> {
   for (const id of batch.image_ids) {
     const img = await getRawImage(env.DB, id);
     if (!img) continue;
-    const dataUrl = await r2ObjectToDataUrl(env, img.r2_key);
+    const dataUrl = await r2ObjectToVlmDataUrl(env, img.r2_key);
     if (dataUrl) items.push({ id, dataUrl });
   }
   if (!items.length) {
     await updateBatchStatus(env.DB, batch.id, 'failed');
     return;
+  }
+  // A batch row maps to exactly one CF request id, so a resubmit can't split.
+  // With downscaling this should never overflow; if it somehow does, fail the
+  // batch (caller releases the images) rather than enter the oversized black
+  // hole the batch API accepts-but-never-processes.
+  const chunks = chunkVlmItems(items);
+  if (chunks.length > 1) {
+    throw new Error(`resubmit payload too large even after downscale (${items.length} images)`);
   }
   const cfBatchId = await submitVlmBatch(env, items);
   await updateBatchStatus(env.DB, batch.id, 'submitted', cfBatchId);

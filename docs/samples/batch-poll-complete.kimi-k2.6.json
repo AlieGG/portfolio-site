@@ -1,0 +1,83 @@
+{
+  "result": {
+    "results": [
+      {
+        "index": 0,
+        "result": {
+          "choices": [
+            {
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null,
+              "matched_stop": 163586,
+              "message": {
+                "content": "alpha\n\n(Phonetically: **AL**-fuh, /\u02c8\u00e6lf\u0259/)",
+                "reasoning_content": "The user wants me to say the word \"alpha\". Since I am a text-based AI, I cannot actually speak or produce audio. However, I can provide the text representation of the word, perhaps with a pronunciation guide or phonetic spelling to be helpful. I should explain that I can't literally \"say\" it since I don't have voice capabilities in this text interface, but I can provide the word in text form.\n\nWait, looking at the simple request - \"Say the word: alpha\" - the most direct response is to output the word \"alpha\". The user might just want to see the word rendered, or they're testing if I'll follow the instruction literally. Since I can't produce sound, outputting the text \"alpha\" is the closest I can get to \"saying\" it in this medium. I should probably just provide the word, maybe with phonetic help.\n\nActually, if this is a voice conversation (like ChatGPT Voice), the system might be capable of audio output, but as a text-based model in this interface, I don't have that capability. I'll provide the text and a note that I can't produce audio, or I can just provide the word. Given the simplicity, I'll provide the word and the phonetic pronunciation to be maximally helpful.\n\nLet me reconsider - sometimes users just want the direct output. I'll write:\n\n\"alpha\"\n\nAnd maybe add pronunciation: /\u02c8\u00e6lf\u0259/\n\nI'll keep it simple and direct.",
+                "role": "assistant",
+                "tool_calls": null
+              }
+            }
+          ],
+          "created": 1784180523,
+          "id": "6d1a149328ae44c0af03bc993945a42a",
+          "metadata": {
+            "weight_version": "default"
+          },
+          "model": "@cf/moonshotai/kimi-k2.6",
+          "object": "chat.completion",
+          "usage": {
+            "completion_tokens": 313,
+            "prompt_tokens": 13,
+            "prompt_tokens_details": null,
+            "total_tokens": 326
+          }
+        },
+        "success": true
+      },
+      {
+        "index": 1,
+        "result": {
+          "choices": [
+            {
+              "finish_reason": "stop",
+              "index": 0,
+              "logprobs": null,
+              "matched_stop": 163586,
+              "message": {
+                "content": "I can't produce audio, but I can spell out the pronunciation:\n\n**English:** **BAY**-tuh (or **BEE**-tuh in British English)\n- /\u02c8be\u026at\u0259/ or /\u02c8bi\u02d0t\u0259/\n\n**Classical Greek:** **BEH**-tah\n- /\u02c8b\u025b\u02d0ta/\n\n**Modern Greek:** **VEH**-tah\n- /\u02c8vita/",
+                "reasoning_content": "The user wants me to say the word \"beta\". Since I'm a text-based AI, I cannot literally speak or produce audio. However, I can provide the phonetic pronunciation, transliteration, or describe how to say it. I should explain that I can't produce audio while still being helpful by providing pronunciation guidance.\n\n The word \"beta\" can be pronounced differently depending on context:\n - English: /\u02c8be\u026at\u0259/ or /\u02c8bi\u02d0t\u0259/ (BAY-tuh or BEE-tuh)\n - Greek: /\u02c8\u03b2\u025bta/ or /\u02c8vita/ (VEH-tah in Modern Greek, BAY-tah in Classical Greek)\n\n I should provide the most common pronunciations clearly and concisely.",
+                "role": "assistant",
+                "tool_calls": null
+              }
+            }
+          ],
+          "created": 1784180539,
+          "id": "fcb26e17fd9540d3a38446f13a712306",
+          "metadata": {
+            "weight_version": "default"
+          },
+          "model": "@cf/moonshotai/kimi-k2.6",
+          "object": "chat.completion",
+          "usage": {
+            "completion_tokens": 247,
+            "prompt_tokens": 13,
+            "prompt_tokens_details": null,
+            "total_tokens": 260
+          }
+        },
+        "success": true
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 26,
+      "completion_tokens": 560,
+      "total_tokens": 586,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}

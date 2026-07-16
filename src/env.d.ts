@@ -14,6 +14,7 @@ interface Env {
   // Image pipeline bindings (see db/pipeline_schema.sql + wrangler.jsonc).
   RAW_IMAGES: R2Bucket; // raw photo archive
   AI: Ai; // Workers AI
+  IMAGES: ImagesBinding; // Cloudflare Images transforms (VLM downscale)
   VECTORIZE: VectorizeIndex; // caption embeddings
   PIPELINE_KV: KVNamespace; // reconcile lock + batch-status cache
   AI_GATEWAY_ID: string; // AI Gateway id (var)

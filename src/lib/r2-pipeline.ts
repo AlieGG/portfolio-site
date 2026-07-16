@@ -36,6 +36,35 @@ export async function r2ObjectToDataUrl(env: Env, key: string): Promise<string |
   return `data:${obj.contentType};base64,${bytesToBase64(obj.bytes)}`;
 }
 
+// Max edge for images sent to the VLM. Captioning doesn't need full-resolution
+// photos, and the async batch API silently kills oversized submissions — a
+// group of full-size JPEGs blows straight past the 10 MB payload cap.
+export const VLM_IMAGE_WIDTH = 1200;
+
+// Like r2ObjectToDataUrl, but downscaled + recompressed via the Images binding
+// so a whole group fits inside a batch submission. Falls back to the original
+// bytes if the binding is unavailable or the transform fails (e.g. exotic
+// format) — chunking at the submit layer still bounds the payload then.
+export async function r2ObjectToVlmDataUrl(env: Env, key: string): Promise<string | null> {
+  const obj = await getR2Object(env, key);
+  if (!obj) return null;
+  try {
+    if (env.IMAGES) {
+      const result = await env.IMAGES.input(new Blob([obj.bytes]).stream())
+        .transform({ width: VLM_IMAGE_WIDTH })
+        .output({ format: 'image/jpeg', quality: 80 });
+      const resized = await result.response().arrayBuffer();
+      // A transform that somehow grows the file (tiny originals) is pointless.
+      if (resized.byteLength < obj.bytes.byteLength) {
+        return `data:image/jpeg;base64,${bytesToBase64(resized)}`;
+      }
+    }
+  } catch (e) {
+    console.warn(`VLM downscale failed for ${key}, using original: ${(e as Error).message}`);
+  }
+  return `data:${obj.contentType};base64,${bytesToBase64(obj.bytes)}`;
+}
+
 // Workers-native base64 (no Node Buffer). Chunked to avoid call-stack limits.
 function bytesToBase64(buffer: ArrayBuffer): string {
   const arr = new Uint8Array(buffer);

@@ -1,0 +1,42 @@
+{
+  "requests": [
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/jpeg;base64,<BASE64_JPEG_BYTES_ELIDED>"
+              }
+            },
+            {
+              "type": "text",
+              "text": "You are analyzing a single project photo for a maker/artist portfolio.\nOutput ONLY valid JSON, no prose, with exactly these keys:\n{\n  \"caption\": \"<1-2 sentence factual description of what is depicted>\",\n  \"quality_score\": <number 0.0-1.0 for technical quality: sharpness, exposure, composition>,\n  \"candidate_tags\": [\"<tag>\", ...],\n  \"subject_type\": \"<pcb|wiring|enclosure|installation|process|detail|other>\"\n}\ncandidate_tags: max 5, lowercase, technology/craft terms."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/jpeg;base64,<BASE64_JPEG_BYTES_ELIDED>"
+              }
+            },
+            {
+              "type": "text",
+              "text": "You are analyzing a single project photo for a maker/artist portfolio.\nOutput ONLY valid JSON, no prose, with exactly these keys:\n{\n  \"caption\": \"<1-2 sentence factual description of what is depicted>\",\n  \"quality_score\": <number 0.0-1.0 for technical quality: sharpness, exposure, composition>,\n  \"candidate_tags\": [\"<tag>\", ...],\n  \"subject_type\": \"<pcb|wiring|enclosure|installation|process|detail|other>\"\n}\ncandidate_tags: max 5, lowercase, technology/craft terms."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
