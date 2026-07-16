@@ -275,12 +275,16 @@ async function loadCull() {
     }),
     btn('Submit to VLM', 'var(--red)', async () => {
       try {
-        const r = await api<{ batchId: string; imageCount: number }>(
+        const r = await api<{ batchId: string; batchIds?: string[]; imageCount: number }>(
           'POST',
           `/api/admin/pipeline/groups/${groupId}/submit-batch`
         );
-        setStatus(`Submitted ${r.imageCount} images (batch ${r.batchId.slice(0, 8)})`, 'ok');
-        startBatchPoll(r.batchId);
+        const ids = r.batchIds?.length ? r.batchIds : [r.batchId];
+        setStatus(
+          `Submitted ${r.imageCount} images (${ids.length} batch${ids.length > 1 ? 'es' : ''})`,
+          'ok'
+        );
+        startBatchPoll(ids);
       } catch (e) {
         setStatus(`Submit failed: ${(e as Error).message}`, 'err');
       }
@@ -318,19 +322,24 @@ function renderCullCard(img: RawImage): HTMLElement {
   );
 }
 
-function startBatchPoll(batchId: string) {
+function startBatchPoll(batchIds: string[]) {
   clearTimeout(cullPollTimer);
   const tick = async () => {
     if (document.hidden) return;
     try {
       await api('POST', '/api/admin/pipeline/reconcile');
-      const { batch } = await api<{ batch: { status: string } }>(
-        'GET',
-        `/api/admin/pipeline/batches/${batchId}`
-      );
-      setStatus(`Batch ${batchId.slice(0, 8)}: ${batch.status}`);
-      if (batch.status === 'complete' || batch.status === 'failed') {
-        setStatus(`Batch ${batch.status}`, batch.status === 'complete' ? 'ok' : 'err');
+      const statuses: string[] = [];
+      for (const id of batchIds) {
+        const { batch } = await api<{ batch: { status: string } }>(
+          'GET',
+          `/api/admin/pipeline/batches/${id}`
+        );
+        statuses.push(batch.status);
+      }
+      setStatus(`Batch${batchIds.length > 1 ? 'es' : ''}: ${statuses.join(', ')}`);
+      if (statuses.every((s) => s === 'complete' || s === 'failed')) {
+        const ok = statuses.every((s) => s === 'complete');
+        setStatus(`Batch${batchIds.length > 1 ? 'es' : ''} ${statuses.join(', ')}`, ok ? 'ok' : 'err');
         loadCull();
         refreshGroupSelectors();
         return;

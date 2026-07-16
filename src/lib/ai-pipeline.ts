@@ -3,9 +3,10 @@
 // https://developers.cloudflare.com/workers-ai/models/ at build time.
 
 // ---- Pinned model IDs (verify against the live catalog before deploy) ----
-export const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct';
-export const TEXT_MODEL = '@cf/moonshotai/kimi-k2-instruct'; // synthesis
-export const EMBED_MODEL = '@cf/google/embeddinggemma-300m'; // text embeddings
+// Last verified against the live catalog: 2026-07-16 (see docs/samples/).
+export const VISION_MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct'; // async_queue: true
+export const TEXT_MODEL = '@cf/moonshotai/kimi-k2.6'; // synthesis (kimi-k2-instruct was retired)
+export const EMBED_MODEL = '@cf/google/embeddinggemma-300m'; // text embeddings, 768-dim
 
 // Gateway option applied to every call. AI_GATEWAY_ID may be empty in local dev,
 // in which case we omit the gateway and hit Workers AI directly.
@@ -45,6 +46,35 @@ export interface BatchPollResult {
   status: 'processing' | 'complete' | 'failed';
   results?: VlmParsed[];
   error?: string;
+}
+
+// The docs cap an async batch submission at 10 MB total payload, but the API
+// ACCEPTS oversized submissions and then never processes them (observed: a
+// 47 MB batch sat "queued" for a week, then expired with error 5504). Chunk
+// well under the cap so a submission can never enter that black hole.
+export const MAX_BATCH_PAYLOAD_BYTES = 8_000_000;
+// JSON scaffolding per request: messages/content wrapper + the VLM prompt.
+const PER_ITEM_OVERHEAD_BYTES = VLM_PROMPT.length + 400;
+
+// Split items into chunks whose serialized payload stays under the size cap.
+// An item too large even alone still gets its own chunk — the submit call will
+// surface the API's own error rather than us silently dropping the image.
+export function chunkVlmItems(items: VlmBatchItem[]): VlmBatchItem[][] {
+  const chunks: VlmBatchItem[][] = [];
+  let current: VlmBatchItem[] = [];
+  let size = 0;
+  for (const it of items) {
+    const itemSize = it.dataUrl.length + PER_ITEM_OVERHEAD_BYTES;
+    if (current.length && size + itemSize > MAX_BATCH_PAYLOAD_BYTES) {
+      chunks.push(current);
+      current = [];
+      size = 0;
+    }
+    current.push(it);
+    size += itemSize;
+  }
+  if (current.length) chunks.push(current);
+  return chunks;
 }
 
 // Submit an async batch job. Returns the Workers AI request id to poll later.
@@ -98,8 +128,11 @@ export async function pollVlmBatch(
   }
 
   // Completion is signalled by a results array being PRESENT — do not rely on a
-  // status string, because a completed batch may return the array with no status
-  // field (that mismatch is what left batches stuck "processing" forever).
+  // status string: a completed batch returns the array with NO status field
+  // (confirmed live, see docs/samples/batch-poll-complete.*.json; that mismatch
+  // is what left batches stuck "processing" forever).
+  // llama-scout uses `responses` with an `id` position; kimi uses `results`
+  // with an `index` position.
   const responses: any[] | undefined =
     (Array.isArray(res?.responses) && res.responses) ||
     (Array.isArray(res?.results) && res.results) ||
@@ -110,10 +143,19 @@ export async function pollVlmBatch(
   if (responses && responses.length) {
     const results: VlmParsed[] = [];
     responses.forEach((r, i) => {
-      // Map back to the raw_image id: prefer the item's own index if it's a valid
-      // position, otherwise fall back to array order (submit order is preserved).
-      const idx = typeof r?.id === 'number' && r.id >= 0 && r.id < imageIds.length ? r.id : i;
-      const imageId = imageIds[idx];
+      // Skip items the API itself marked failed; their images get released by
+      // the reconcile "no usable result" sweep.
+      if (r?.success === false) return;
+      // Map back to the raw_image id via the item's declared position. This is
+      // NOT cosmetic: completed scout batches return items OUT of submit order
+      // (observed live), so array order alone would misattribute captions.
+      const pos =
+        typeof r?.id === 'number' && r.id >= 0 && r.id < imageIds.length
+          ? r.id
+          : typeof r?.index === 'number' && r.index >= 0 && r.index < imageIds.length
+            ? r.index
+            : i;
+      const imageId = imageIds[pos];
       if (imageId == null) return;
       const content = extractContent(r);
       const parsed = safeParseVlm(content);
@@ -136,8 +178,11 @@ export async function rawPollBatch(env: Env, cfBatchId: string): Promise<unknown
   }
 }
 
-// Pull the text content out of one batch response item (shape varies by model).
-function extractContent(r: any): string {
+// Pull the content out of one batch response item (shape varies by model).
+// NOT always a string: scout's batch responses sometimes carry the VLM JSON as
+// an already-parsed object in `result.response` (observed live — the same
+// batch mixed object and fenced-string items).
+export function extractContent(r: any): string | object {
   return (
     r?.result?.response ??
     r?.response ??
@@ -148,23 +193,29 @@ function extractContent(r: any): string {
   );
 }
 
-function safeParseVlm(content: string): Omit<VlmParsed, 'id'> | null {
+export function safeParseVlm(content: string | object): Omit<VlmParsed, 'id'> | null {
   if (!content) return null;
-  const json = extractJsonObject(content);
-  if (!json) return null;
-  try {
-    const o = JSON.parse(json);
-    return {
-      caption: typeof o.caption === 'string' ? o.caption : '',
-      quality_score: clamp01(Number(o.quality_score)),
-      candidate_tags: Array.isArray(o.candidate_tags)
-        ? o.candidate_tags.filter((t: unknown) => typeof t === 'string').slice(0, 5)
-        : [],
-      subject_type: typeof o.subject_type === 'string' ? o.subject_type : undefined,
-    };
-  } catch {
-    return null;
+  let o: any;
+  if (typeof content === 'object') {
+    o = content;
+  } else {
+    const json = extractJsonObject(content);
+    if (!json) return null;
+    try {
+      o = JSON.parse(json);
+    } catch {
+      return null;
+    }
   }
+  if (typeof o !== 'object' || o === null || typeof o.caption !== 'string') return null;
+  return {
+    caption: o.caption,
+    quality_score: clamp01(Number(o.quality_score)),
+    candidate_tags: Array.isArray(o.candidate_tags)
+      ? o.candidate_tags.filter((t: unknown) => typeof t === 'string').slice(0, 5)
+      : [],
+    subject_type: typeof o.subject_type === 'string' ? o.subject_type : undefined,
+  };
 }
 
 /* ------------------------------ embeddings ------------------------------ */
@@ -208,7 +259,8 @@ Max 5 tags, ALL CAPS, 1-3 words each.`;
     { messages: [{ role: 'user', content: prompt }] },
     opts(env)
   );
-  const content = extractContent(res);
+  const raw = extractContent(res);
+  const content = typeof raw === 'string' ? raw : JSON.stringify(raw);
   const json = extractJsonObject(content);
   if (json) {
     try {
@@ -252,7 +304,8 @@ Output ONLY a JSON array of question strings, e.g. ["...", "..."].`;
     { messages: [{ role: 'user', content: prompt }] },
     opts(env)
   );
-  const content = extractContent(res);
+  const raw = extractContent(res);
+  const content = typeof raw === 'string' ? raw : JSON.stringify(raw);
   const arr = extractJsonArray(content);
   if (arr) {
     try {

@@ -1,0 +1,35 @@
+{
+  "result": {
+    "responses": [
+      {
+        "id": 1,
+        "result": {
+          "response": "```\n{\n  \"caption\": \"A single LED component on a printed circuit board with connected wiring.\",\n  \"quality_score\": 0.8,\n  \"candidate_tags\": [\"pcb\", \"led\", \"wiring\", \"electronics\", \"circuitry\"],\n  \"subject_type\": \"pcb\"\n}\n```",
+          "tool_calls": []
+        },
+        "success": true,
+        "external_reference": null
+      },
+      {
+        "id": 0,
+        "result": {
+          "response": "```\n{\n  \"caption\": \"A printed circuit board (PCB) with yellow lines on a red background.\",\n  \"quality_score\": 0.8,\n  \"candidate_tags\": [\"pcb\", \"circuit board\", \"electronics\", \"maker\", \"diy\"],\n  \"subject_type\": \"pcb\"\n}\n```",
+          "tool_calls": []
+        },
+        "success": true,
+        "external_reference": null
+      }
+    ],
+    "usage": {
+      "prompt_tokens": 686,
+      "completion_tokens": 131,
+      "total_tokens": 817,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}

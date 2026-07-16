@@ -1,0 +1,17 @@
+{
+  "result": {
+    "response": "```\n{\n  \"caption\": \"A printed circuit board (PCB) with yellow lines on a red background.\",\n  \"quality_score\": 0.8,\n  \"candidate_tags\": [\"pcb\", \"circuit board\", \"electronics\", \"maker\", \"diy\"],\n  \"subject_type\": \"pcb\"\n}\n```",
+    "tool_calls": [],
+    "usage": {
+      "prompt_tokens": 343,
+      "completion_tokens": 66,
+      "total_tokens": 409,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    }
+  },
+  "success": true,
+  "errors": [],
+  "messages": []
+}
