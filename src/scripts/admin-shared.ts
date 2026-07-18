@@ -6,13 +6,14 @@
 
 /* ---------- status line (#admin-status exists in both page shells) ---------- */
 let statusT = 0;
-export function setStatus(msg: string, kind: 'ok' | 'err' | '' = '') {
+export function setStatus(msg: string, kind: 'ok' | 'err' | '' = '', sticky = false) {
   const statusEl = document.getElementById('admin-status');
   if (!statusEl) return;
   statusEl.textContent = msg;
   statusEl.style.color = kind === 'err' ? '#ff5a6e' : kind === 'ok' ? '#15e0a0' : 'var(--muted)';
   clearTimeout(statusT);
-  if (msg) statusT = window.setTimeout(() => (statusEl.textContent = ''), 3500);
+  // sticky: keep showing until the next setStatus call (ongoing operations).
+  if (msg && !sticky) statusT = window.setTimeout(() => (statusEl.textContent = ''), 3500);
 }
 
 /* ---------- fetch wrapper ---------- */

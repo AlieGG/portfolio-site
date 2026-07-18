@@ -106,6 +106,32 @@ export async function submitVlmBatch(env: Env, items: VlmBatchItem[]): Promise<s
   return String(requestId);
 }
 
+// Caption ONE image with a plain synchronous call (~3-5 s). This is the
+// primary path: the async queue has no latency guarantee and was observed
+// sitting 10-25 minutes on tiny jobs. The queue remains the fallback when
+// sync calls keep failing (capacity errors) — see batch-reconcile.
+export async function captionImageSync(
+  env: Env,
+  dataUrl: string
+): Promise<Omit<VlmParsed, 'id'> | null> {
+  const res: any = await (env.AI as any).run(
+    VISION_MODEL,
+    {
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: dataUrl } },
+            { type: 'text', text: VLM_PROMPT },
+          ],
+        },
+      ],
+    },
+    opts(env)
+  );
+  return safeParseVlm(extractContent(res));
+}
+
 // Poll a previously-submitted batch. `imageIds` must be the submit-order id list
 // so positional responses can be mapped back to raw_image rows.
 export async function pollVlmBatch(

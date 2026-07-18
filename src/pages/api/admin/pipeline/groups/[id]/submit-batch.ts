@@ -2,19 +2,22 @@ import type { APIRoute } from 'astro';
 import { json, requireAdmin, parseId } from '../../../../../../lib/api';
 import {
   listCulledImages,
+  listRawImagesByGroup,
   insertBatch,
   markImagesPending,
 } from '../../../../../../lib/pipeline-db';
-import { submitVlmBatch, chunkVlmItems, type VlmBatchItem } from '../../../../../../lib/ai-pipeline';
-import { r2ObjectToVlmDataUrl } from '../../../../../../lib/r2-pipeline';
+import { reconcileWithLock } from '../../../../../../lib/batch-reconcile';
 
 export const prerender = false;
 
 // POST /api/admin/pipeline/groups/[id]/submit-batch
-// Queues all 'culled' images in the group to the Workers AI async batch API.
-// Images are downscaled first, and the group is split across as many batch
-// submissions as needed to keep each payload under the API's size cap —
-// oversized submissions are accepted but never processed (see docs/samples/).
+// Marks all 'culled' images in the group for captioning and returns
+// immediately. The actual VLM work happens incrementally in reconcile ticks —
+// a few plain (fast) AI calls per tick, driven by the UI's poll — with the
+// async queue as fallback if sync calls keep failing. Images move
+// culled → vlm_pending → vlm_done as they're processed, so the grid can live-
+// update. Pressing the button twice is safe: the second call finds no culled
+// images and reports what's already in flight.
 export const POST: APIRoute = async (ctx) => {
   const env = requireAdmin(ctx);
   if (env instanceof Response) return env;
@@ -22,44 +25,28 @@ export const POST: APIRoute = async (ctx) => {
   if (!id) return json({ error: 'bad id' }, 400);
 
   const images = await listCulledImages(env.DB, id);
-  if (!images.length) return json({ error: 'no culled images to submit' }, 400);
-
-  // Read bytes from R2, downscale, inline as data URLs (no public URL needed).
-  const items: VlmBatchItem[] = [];
-  for (const img of images) {
-    const dataUrl = await r2ObjectToVlmDataUrl(env, img.r2_key);
-    if (dataUrl) items.push({ id: img.id, dataUrl });
-  }
-  if (!items.length) return json({ error: 'could not read images from R2' }, 502);
-
-  const batchIds: string[] = [];
-  let submitted = 0;
-  for (const chunk of chunkVlmItems(items)) {
-    let cfBatchId: string;
-    try {
-      cfBatchId = await submitVlmBatch(env, chunk);
-    } catch (e) {
-      // Report partial progress; already-submitted chunks keep reconciling.
-      return json(
-        { error: (e as Error).message, batchIds, imageCount: submitted },
-        batchIds.length ? 207 : 502
-      );
-    }
-    const batchId = crypto.randomUUID();
-    const imageIds = chunk.map((it) => it.id);
-    await insertBatch(env.DB, {
-      id: batchId,
-      batch_type: 'vlm_caption',
-      cf_batch_id: cfBatchId,
-      group_id: id,
-      status: 'submitted',
-      image_ids: imageIds,
-    });
-    await markImagesPending(env.DB, imageIds, batchId);
-    batchIds.push(batchId);
-    submitted += imageIds.length;
+  if (!images.length) {
+    // Distinguish "nothing to do" from "already running" so the UI can say so.
+    const all = await listRawImagesByGroup(env.DB, id);
+    const inFlight = all.filter((i) => i.pipeline_status === 'vlm_pending').length;
+    if (inFlight) return json({ error: `captioning already in progress (${inFlight} images)` }, 409);
+    return json({ error: 'no culled images to submit' }, 400);
   }
 
-  // batchId kept for backwards compatibility with the single-batch UI shape.
-  return json({ batchId: batchIds[0], batchIds, imageCount: submitted });
+  const batchId = crypto.randomUUID();
+  const imageIds = images.map((img) => img.id);
+  await insertBatch(env.DB, {
+    id: batchId,
+    batch_type: 'vlm_sync',
+    cf_batch_id: null,
+    group_id: id,
+    status: 'processing',
+    image_ids: imageIds,
+  });
+  await markImagesPending(env.DB, imageIds, batchId);
+
+  // Kick the first captioning tick right away instead of waiting for a poll.
+  ctx.locals.runtime.ctx.waitUntil(reconcileWithLock(env).catch(() => {}));
+
+  return json({ batchId, batchIds: [batchId], imageCount: imageIds.length });
 };

@@ -22,6 +22,7 @@ import {
 } from './pipeline-db';
 import {
   pollVlmBatch,
+  captionImageSync,
   embedCaption,
   draftInterviewQuestions,
   submitVlmBatch,
@@ -32,6 +33,10 @@ import { r2ObjectToVlmDataUrl } from './r2-pipeline';
 import { getRawImage } from './pipeline-db';
 
 const MAX_RETRIES = 3;
+// How many images one reconcile tick captions synchronously (~3-5 s each).
+// Bounds the reconcile request's wall-clock while the UI polls every few
+// seconds, so a 16-image group finishes in ~4 ticks.
+export const SYNC_CAPTIONS_PER_TICK = 4;
 const LOCK_KEY = 'reconcile-lock';
 // Workers KV rejects expirationTtl < 60 with a 400 — a TTL of 30 made every
 // lock put throw, which killed EVERY reconcile before it polled anything.
@@ -102,6 +107,14 @@ export async function reconcilePendingBatches(env: Env): Promise<ReconcileSummar
 }
 
 async function reconcileOne(env: Env, batch: PipelineBatch, summary: ReconcileSummary): Promise<void> {
+  // Sync batches caption incrementally here and never have a CF request id —
+  // unless they've fallen back to the async queue, in which case cf_batch_id
+  // is set and they poll like any queued batch below.
+  if (batch.batch_type === 'vlm_sync' && !batch.cf_batch_id) {
+    await processSyncBatch(env, batch, summary);
+    return;
+  }
+
   if (!batch.cf_batch_id) {
     await updateBatchStatus(env.DB, batch.id, 'failed');
     await revertImagesToCulled(env.DB, batch.image_ids);
@@ -164,6 +177,76 @@ async function reconcileOne(env: Env, batch: PipelineBatch, summary: ReconcileSu
   await updateBatchStatus(env.DB, batch.id, 'complete');
   summary.completed++;
 
+  if (batch.group_id != null) {
+    await queueEmbeddingBatch(env, batch.group_id);
+    await draftGroupInterviewQuestions(env, batch.group_id);
+  }
+}
+
+// Caption a slice of a sync batch's still-pending images with plain (fast)
+// AI calls. Each reconcile tick advances the batch a few images; the batch
+// completes when nothing is left pending. If sync calls keep failing
+// (capacity), the whole batch falls back to the async queue via resubmit.
+async function processSyncBatch(
+  env: Env,
+  batch: PipelineBatch,
+  summary: ReconcileSummary
+): Promise<void> {
+  const pending: { id: number; r2_key: string }[] = [];
+  for (const id of batch.image_ids) {
+    const img = await getRawImage(env.DB, id);
+    if (img && img.pipeline_status === 'vlm_pending') pending.push(img);
+  }
+
+  if (pending.length) {
+    const slice = pending.slice(0, SYNC_CAPTIONS_PER_TICK);
+    for (const img of slice) {
+      let parsed: Awaited<ReturnType<typeof captionImageSync>> = null;
+      try {
+        const dataUrl = await r2ObjectToVlmDataUrl(env, img.r2_key);
+        if (dataUrl) parsed = await captionImageSync(env, dataUrl);
+      } catch (e) {
+        // AI call failed (likely capacity). Bump the retry counter; once
+        // exhausted, hand the whole batch to the async queue — slow, but it
+        // guarantees eventual fulfillment precisely when capacity is tight.
+        const err = (e as Error).message;
+        await incrementBatchRetry(env.DB, batch.id, err);
+        if (batch.retry_count + 1 >= MAX_RETRIES) {
+          try {
+            await resubmitBatch(env, batch);
+          } catch (e2) {
+            console.warn(`sync batch ${batch.id} queue fallback failed: ${(e2 as Error).message}`);
+            await updateBatchStatus(env.DB, batch.id, 'failed');
+            await revertImagesToCulled(env.DB, batch.image_ids);
+            summary.failed++;
+            return;
+          }
+        }
+        summary.stillProcessing++;
+        return;
+      }
+      if (parsed) {
+        await updateRawImageVlm(env.DB, img.id, {
+          vlm_caption: parsed.caption,
+          vlm_quality_score: parsed.quality_score,
+          vlm_candidate_tags: parsed.candidate_tags,
+          pipeline_status: 'vlm_done',
+        });
+      } else {
+        // Unreadable bytes or an unparseable caption — release just this image.
+        await revertImagesToCulled(env.DB, [img.id]);
+      }
+    }
+    if (pending.length > slice.length) {
+      await updateBatchStatus(env.DB, batch.id, 'processing');
+      summary.stillProcessing++;
+      return;
+    }
+  }
+
+  // Nothing pending left: every image is either vlm_done or was released.
+  await updateBatchStatus(env.DB, batch.id, 'complete');
+  summary.completed++;
   if (batch.group_id != null) {
     await queueEmbeddingBatch(env, batch.group_id);
     await draftGroupInterviewQuestions(env, batch.group_id);
